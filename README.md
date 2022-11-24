@@ -1,4 +1,4 @@
-# logarithmic_spiral_fit
+# Logarithmic Spiral Fit
 Script to fit logarithmic spirals to a pair of points (A and B) with specified coordinates and and angles. 
 Instead of coordinates, the user can also define the length of vector AB (i.e. the chord length) and the 
 curvature distribution (i.e. the stretch)
