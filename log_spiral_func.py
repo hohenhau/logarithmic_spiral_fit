@@ -12,6 +12,34 @@ from numpy import arctan, arctan2               # importing the inverse and the 
 from sys import exit
 
 
+class LogarithmicSpiral:
+    def __init__(self, name):
+        self.name = name  # name of the spiral
+        self.style = '-'
+
+        # Full length values
+        self.x_orig = None      # horizontal spiral origin
+        self.y_orig = None      # vertical spiral origin
+        self.x_offset = 0       # horizontal spiral origin
+        self.y_offset = 0       # vertical spiral origin
+        self.po_slope = None    # polar slope
+        self.po_angle = None    # polar slope angle
+        self.po_A = None        # polar coordinate at A
+        self.po_B = None        # polar coordinate at B
+        self.factor = None      # scaling factor
+
+        # Rounded values
+        self.s_x_orig = None    # horizontal spiral origin
+        self.s_y_orig = None    # vertical spiral origin
+        self.s_x_offset = None  # horizontal spiral origin
+        self.s_y_offset = None  # vertical spiral origin
+        self.s_po_slope = None  # polar slope
+        self.s_po_angle = None  # polar slope angle
+        self.s_po_A = None      # polar coordinate at A
+        self.s_po_B = None      # polar coordinate at B
+        self.s_factor = None    # scaling factor
+
+
 def chord_coordinates(chord, stretch):
     A_x = sqrt(chord ** 2 / (stretch ** 2 + 1))
     B_y = stretch * A_x
@@ -99,25 +127,25 @@ def origin(AB_len, AB_rad, AC_rad, BC_rad, A, β, β_min, β_max, θ, growth, ac
 
     count = 1
     while True:
-        alpha = β - pi / 2                                  # polar tangential angle
-        AD_rad = AC_rad + β                           # 4 quadrant angle of vector AD
-        BD_rad = BC_rad + β                           # 4 quadrant angle of vector BD
-        angleAA = abs(AD_rad - AB_rad)                # absolute value of angle AA
-        angleBB = abs(AB_rad + pi - BD_rad)           # absolute value of angle BB
-        angleD = pi - angleAA - angleBB                     # absolute value of angle D
-        AD_len = AB_len * sin(angleBB) / sin(angleD)      # length of vector AD
-        BD_len = AB_len * sin(angleAA) / sin(angleD)      # length of vector BD
-        AD_x = cos(AD_rad) * AD_len           # x component of vector AD
-        AD_y = sin(AD_rad) * AD_len           # y component of vector AD
-        A_x, A_y = A                                                        # x & y components of coordinate A
-        D_x, D_y = A_x + AD_x, A_y + AD_y                       # x & y components of coordinate D
-        D = (D_x, D_y)                                                      # coordinate D
-        b = growth * abs(tan(alpha))                                        # polar slope 'b'
-        t_a = arctan((A_y - D_y) / (A_x - D_x))                             # polar angle t_a
-        t_b = t_a + θ                                                   # polar angle t_b
-        a = (A_x - D_x) / (exp(b * t_a) * cos(t_a))                         # spiral scaling factor
-        segment_x = a * exp(b * t_b) * cos(t_b) + D_x                       # x component of spiral segment
-        segment_y = a * exp(b * t_b) * sin(t_b) + D_y                       # y component of spiral segment
+        alpha = β - pi / 2                              # polar tangential angle
+        AD_rad = AC_rad + β                             # 4 quadrant angle of vector AD
+        BD_rad = BC_rad + β                             # 4 quadrant angle of vector BD
+        angleAA = abs(AD_rad - AB_rad)                  # absolute value of angle AA
+        angleBB = abs(AB_rad + pi - BD_rad)             # absolute value of angle BB
+        angleD = pi - angleAA - angleBB                 # absolute value of angle D
+        AD_len = AB_len * sin(angleBB) / sin(angleD)    # length of vector AD
+        BD_len = AB_len * sin(angleAA) / sin(angleD)    # length of vector BD
+        AD_x = cos(AD_rad) * AD_len                     # x component of vector AD
+        AD_y = sin(AD_rad) * AD_len                     # y component of vector AD
+        A_x, A_y = A                                    # x & y components of coordinate A
+        D_x, D_y = A_x + AD_x, A_y + AD_y               # x & y components of coordinate D
+        D = (D_x, D_y)                                  # coordinate D
+        b = growth * abs(tan(alpha))                    # polar slope 'b'
+        t_a = arctan((A_y - D_y) / (A_x - D_x))         # polar angle t_a
+        t_b = t_a + θ                                   # polar angle t_b
+        a = (A_x - D_x) / (exp(b * t_a) * cos(t_a))     # spiral scaling factor
+        segment_x = a * exp(b * t_b) * cos(t_b) + D_x   # x component of spiral segment
+        segment_y = a * exp(b * t_b) * sin(t_b) + D_y   # y component of spiral segment
         segment = sqrt((segment_x - D_x) ** 2 + (segment_y - D_y) ** 2)     # length of spiral segment
 
         verb = True
@@ -147,7 +175,7 @@ def origin(AB_len, AB_rad, AC_rad, BC_rad, A, β, β_min, β_max, θ, growth, ac
 
 def offsets(origin_x, origin_y, inlet, outlet, thick, BC_dev):
     x_offset = origin_x + inlet + thick
-    y_offset = origin_y + (outlet + thick / cos(BC_dev) + inlet * tan(BC_dev)) * 1
+    y_offset = origin_y + (outlet + thick / cos(BC_dev) + inlet * tan(BC_dev))
     return x_offset, y_offset
 
 
@@ -155,48 +183,47 @@ def sf(num, fig):  # return significant figure
     return '{:g}'.format(float('{:.{p}g}'.format(num, p=fig)))
 
 
-def diffuser_table(atrb):
+def diffuser_table(spirals):
+    s1, s2, s3 = spirals
     print()
-    print("characteristic            |\t  sign\t|",   atrb[0][0], "\t|",     atrb[1][0], "|",       atrb[2][0])
+    print("characteristic            |\t  sign\t|",   s1.name,         "\t|",   s2.name,           "|",   s3.name)
     print("------------------------------------------------------------------------------------")
-    print("horizontal spiral origin  |\t    x \t|\t", atrb[0][1], "\t\t|\t", atrb[1][1], "\t\t|\t", atrb[2][1])
-    print("vertical spiral origin    |\t    y \t|\t", atrb[0][2], "\t\t|\t", atrb[1][2], "\t\t|\t", atrb[2][2])
-    print("polar slope angle         |\talpha \t|\t", atrb[0][3], "\t\t|\t", atrb[1][3], "\t\t|\t", atrb[2][3])
-    print("scaling factor            |\t    a \t|\t", atrb[0][4], "\t\t|\t", atrb[1][4], "\t\t|\t", atrb[2][4])
-    print("polar slope               |\t    b \t|\t", atrb[0][5], "\t\t|\t", atrb[1][5], "\t\t|\t", atrb[2][5])
-    print("polar coordinate at A     |\t  t_a \t|\t", atrb[0][6], "\t\t|\t", atrb[1][6], "\t\t|\t", atrb[2][6])
-    print("polar coordinate at B     |\t  t_b \t|\t", atrb[0][7], "\t\t|\t", atrb[1][7], "\t\t|\t", atrb[2][7])
+    print("horizontal spiral origin  |\t    x \t|\t", s1.s_x_orig,   "\t\t|\t", s2.s_x_orig,   "\t\t|\t", s3.s_x_orig)
+    print("vertical spiral origin    |\t    y \t|\t", s1.s_y_orig,   "\t\t|\t", s2.s_y_orig,   "\t\t|\t", s3.s_y_orig)
+    print("polar slope angle         |\talpha \t|\t", s1.s_po_angle, "\t\t|\t", s2.s_po_angle, "\t\t|\t", s3.s_po_angle)
+    print("scaling factor            |\t    a \t|\t", s1.s_factor,   "\t\t|\t", s2.s_factor,   "\t\t|\t", s3.s_factor)
+    print("polar slope               |\t    b \t|\t", s1.s_po_slope, "\t\t|\t", s2.s_po_slope, "\t\t|\t", s3.s_po_slope)
+    print("polar coordinate at A     |\t  t_a \t|\t", s1.s_po_A,     "\t\t|\t", s2.s_po_A,     "\t\t|\t", s3.s_po_A)
+    print("polar coordinate at B     |\t  t_b \t|\t", s1.s_po_B,     "\t\t|\t", s2.s_po_B,     "\t\t|\t", s3.s_po_B)
+    print("horizontal offset         |\t      \t|\t", s1.s_x_offset, "\t\t|\t", s2.s_x_offset, "\t\t|\t", s3.s_x_offset)
+    print("vertical offset           |\t      \t|\t", s1.s_y_offset, "\t\t|\t", s2.s_y_offset, "\t\t|\t", s3.s_y_offset)
 
 
-def spiral_equations(t_a, t_b, a, b, x_offset, y_offset):
+def spiral_equations(t_a, t_b, a, b, x_offset, y_offset, name='spiral'):
     print()
-    print(f"from {t_a} to {t_b}")
-    print(f"inner spiral   x = {a} * exp({b} * t) * cos(t) + {x_offset}")
-    print(f"inner spiral   y = {a} * exp({b} * t) * sin(t) + {y_offset}")
+    print(f"{name} from {t_a} to {t_b}")
+    print(f"x = {a} * exp({b} * t) * cos(t) + {x_offset}")
+    print(f"y = {a} * exp({b} * t) * sin(t) + {y_offset}")
 
 
-def diffuser_equations(spir, x_offset, y_offset):
-    spiral_equations(spir[0][6], spir[0][7], spir[0][4], spir[0][5], x_offset, y_offset)    # inner
-    spiral_equations(spir[1][6], spir[1][7], spir[1][4], spir[1][5], 0, 0)                  # centre
-    spiral_equations(spir[2][6], spir[2][7], spir[2][4], spir[2][5], 0, 0)                  # outer
+def diffuser_equations(spirals):
+    s1, s2, s3, = spirals
+    spiral_equations(s1.po_A, s1.po_B, s1.factor, s1.po_slope, s1.x_offset, s1.y_offset, s1.name)
+    spiral_equations(s2.po_A, s2.po_B, s2.factor, s2.po_slope, s2.x_offset, s2.y_offset, s2.name)
+    spiral_equations(s3.po_A, s3.po_B, s3.factor, s3.po_slope, s3.x_offset, s3.y_offset, s3.name)
 
 
-def save_diffuser(spir, x_offset, y_offset, file_name):
+def save_diffuser(spirals, file_name):
     with open(file_name, 'w', encoding='utf-8-sig') as file:
-        x_0 = f"{spir[0][4]}*exp({spir[0][5]}*t)*cos(t)+{x_offset},"
-        y_0 = f"{spir[0][4]}*exp({spir[0][5]}*t)*sin(t)+{y_offset},"
-        lim_l_0 = f"{spir[0][6]},"
-        lim_u_0 = f"{spir[0][7]}"
-        x_2 = f"{spir[2][4]}*exp({spir[2][5]}*t)*cos(t)+{spir[2][1]},"
-        y_2 = f"{spir[2][4]}*exp({spir[2][5]}*t)*sin(t)+{spir[2][2]},"
-        lim_l_2 = f"{spir[2][6]},"
-        lim_u_2 = f"{spir[2][7]}"
-        row_1 = "x,y,lower_limit,upper_limit" + "\n"
-        row_2 = y_0 + x_0 + lim_l_0 + lim_u_0 + "\n"
-        row_3 = y_2 + x_2 + lim_l_2 + lim_u_2
-        file.write(row_1)
-        file.write(row_2)
-        file.write(row_3)
+        file.write("name,x,y,lower_limit,upper_limit" + "\n")
+        for s in spirals:
+            x = f"{s.factor}*exp({s.po_slope}*t)*cos(t)+{s.x_offset},"
+            y = f"{s.factor}*exp({s.po_slope}*t)*sin(t)+{s.y_offset},"
+            lim_l = f"{s.po_A},"
+            lim_u = f"{s.po_B}"
+            name = f'{s.name},'
+            row = name + y + x + lim_l + lim_u + "\n"
+            file.write(row)
     print(f"successfully exported equations")
 
 
@@ -228,10 +255,11 @@ def plot_general():
     plt.show()
 
 
-def plot_diffuser(spir, A, B, C, D):
-    plot_spiral(spir[0][6], spir[0][7], spir[0][4], spir[0][5], spir[0][1], spir[0][2], '-', 'inner spiral')
-    plot_spiral(spir[1][6], spir[1][7], spir[1][4], spir[1][5], spir[1][1], spir[1][2], '--', 'central spiral')
-    plot_spiral(spir[2][6], spir[2][7], spir[2][4], spir[2][5], spir[2][1], spir[2][2], '-', 'outer spiral')
+def plot_diffuser(spirals, A, B, C, D):
+    s1, s2, s3 = spirals
+    plot_spiral(s1.po_A, s1.po_B, s1.factor, s1.po_slope, s1.x_orig, s1.y_orig, '-', s1.name)
+    plot_spiral(s2.po_A, s2.po_B, s2.factor, s2.po_slope, s2.x_orig, s2.y_orig, '--', s2.name)
+    plot_spiral(s3.po_A, s3.po_B, s3.factor, s3.po_slope, s3.x_orig, s3.y_orig, '-', s1.name)
     line1 = [A, B]
     triangle1 = [A, C, B]
     triangle2 = [A, D, B]
@@ -276,7 +304,7 @@ def spiral_calculator_chord(chord, stretch, AC_deg, BC_deg, acc, limit):
 
 def diffuser_calculator(inlet, outlet, stretch, chord, AC_deg, BC_deg, thick, acc, limit):
     coordinates = diffuser_coordinates(inlet, outlet, stretch, chord)
-    atrb, spir = [], []
+    spirals = list()
     for coord in coordinates:
         name, A, B = coord
         AB_len, AB_rad, AC_rad, BC_rad, BC_dev = spiral_geometry(A, B, AC_deg, BC_deg, name)
@@ -284,11 +312,26 @@ def diffuser_calculator(inlet, outlet, stretch, chord, AC_deg, BC_deg, thick, ac
         C, β, β_min, β_max, θ, growth = triangle_geometry(AB_rad, AC_rad, BC_rad, AB_len, A)
         D, alpha, a, b, t_a, t_b = origin(AB_len, AB_rad, AC_rad, BC_rad, A, β, β_min, β_max, θ, growth, acc, limit)
         x_offset, y_offset = offsets(D[0], D[1], inlet, outlet, thick, BC_dev)
-        values_long = [name, D[0], D[1], alpha, a, b, t_a, t_b]
-        values_rounded = [name, sf(D[0], 3), sf(D[1], 3), sf(alpha, 3), sf(a, 3), sf(b, 3), sf(t_a, 3), sf(t_b, 3)]
-        atrb.append(values_rounded)
-        spir.append(values_long)
-    diffuser_table(atrb)
-    diffuser_equations(spir, x_offset, y_offset)
-    save_diffuser(spir, x_offset, y_offset, "./equations.csv")
-    plot_diffuser(spir, A, B, C, D)
+        spiral = LogarithmicSpiral(name)
+        spiral.x_orig, spiral.s_x_orig = D[0], sf(D[0], 3)
+        spiral.y_orig, spiral.s_y_orig = D[1], sf(D[1], 3)
+        spiral.po_angle, spiral.s_po_angle = alpha, sf(alpha, 3)
+        spiral.factor, spiral.s_factor = a, sf(a, 3)
+        spiral.po_slope, spiral.s_po_slope = b, sf(b, 3)
+        spiral.po_A, spiral.s_po_A = t_a, sf(t_a, 3)
+        spiral.po_B, spiral.s_po_B = t_b, sf(t_b, 3)
+        spiral.x_offset, spiral.s_x_offset = x_offset, sf(x_offset, 3)
+        spiral.y_offset, spiral.s_y_offset = y_offset, sf(y_offset, 3)
+        spirals.append(spiral)
+
+    """
+    spirals[1].x_offset, spirals[1].s_x_offset = spirals[1].x_offset - thick, sf(spirals[1].x_offset - thick, 3)
+    spirals[1].y_offset, spirals[1].s_y_offset = spirals[1].y_offset - thick, sf(spirals[1].y_offset - thick, 3)
+    spirals[2].x_offset, spirals[2].s_x_offset = 0, 0
+    spirals[2].x_offset, spirals[2].s_x_offset = 0, 0
+    """
+
+    diffuser_table(spirals)
+    diffuser_equations(spirals)
+    save_diffuser(spirals, "./equations.csv")
+    plot_diffuser(spirals, A, B, C, D)

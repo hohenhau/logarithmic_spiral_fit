@@ -6,16 +6,16 @@ from log_spiral_func import *
 A = (3, 0)                  # x & y coordinate of point A
 B = (0, 4)                  # x & y coordinates of point B
 AC_deg = 90                 # 4 quadrant angle of vector A in degrees
-BC_deg = 200                # 4 quadrant angle of vector B in degrees
+BC_deg = 180                # 4 quadrant angle of vector B in degrees
 
 # chord parameters
-chord = 5              # chord length of OUTER diffuser curve
-stretch = 0.75               # stretch of CENTRAL curve (height / width)
+chord = 200              # chord length of OUTER diffuser curve
+stretch = 0.70               # stretch of CENTRAL curve (height / width)
 
 # diffuser parameters
-thick = 0                   # thickness of the vanes
-inlet = 0.1 - thick          # width of inlet
-outlet = 2 - thick         # width of outlet
+thick = 2                   # thickness of the vanes
+inlet = 21 - thick          # width of inlet
+outlet = 42 - thick         # width of outlet
 
 # simulation parameters
 acc = 0.000000001           # solution accuracy
