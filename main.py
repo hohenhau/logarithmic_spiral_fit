@@ -9,8 +9,8 @@ AC_deg = 90                 # 4 quadrant angle of vector A in degrees
 BC_deg = 180                # 4 quadrant angle of vector B in degrees
 
 # chord parameters
-chord = 200              # chord length of OUTER diffuser curve
-stretch = 0.70               # stretch of CENTRAL curve (height / width)
+chord = 200                 # chord length of OUTER diffuser curve
+stretch = 0.70              # stretch of CENTRAL curve (height / width)
 
 # diffuser parameters
 thick = 2                   # thickness of the vanes
