@@ -22,6 +22,11 @@ acc = 0.000000001           # solution accuracy
 limit = 100                 # maximum number of iterations
 verb = False                # change verbosity of script
 
+# Recommended settings
+suggested_gap_to_chord = 0.230  # This value comes from my PhD research
+suggested_chord = ((inlet + thick)**2 + (outlet + thick)**2)**0.5 / suggested_gap_to_chord
+print(f'suggested chord is {suggested_chord} based on a gap-to-chord ratio of {suggested_gap_to_chord}')
+
 spiral_calculator(A, B, AC_deg, BC_deg, acc, limit)
 spiral_calculator_chord(chord, stretch, AC_deg, BC_deg, acc, limit)
 diffuser_calculator(inlet, outlet, stretch, chord, AC_deg, BC_deg, thick, acc, limit)
