@@ -17,7 +17,7 @@ class LogarithmicSpiral:
         self.name = name  # name of the spiral
         self.style = '-'
 
-        # Full length values
+        # Geometric characteristics of the logarithmic spiral
         self.x_orig = None      # horizontal spiral origin
         self.y_orig = None      # vertical spiral origin
         self.x_offset = 0       # horizontal spiral origin
@@ -28,7 +28,7 @@ class LogarithmicSpiral:
         self.po_B = None        # polar coordinate at B
         self.factor = None      # scaling factor
 
-        # Rounded values
+        # Rounded geometric characteristics of the logarithmic spiral
         self.s_x_orig = None    # horizontal spiral origin
         self.s_y_orig = None    # vertical spiral origin
         self.s_x_offset = None  # horizontal spiral origin
@@ -39,24 +39,34 @@ class LogarithmicSpiral:
         self.s_po_B = None      # polar coordinate at B
         self.s_factor = None    # scaling factor
 
+        # Construction geometry
+        self.ab_len = None      # Length from point A to point B
+        self.ab_rad = None      # 4 quadrant angle of vector AB in radians
+        self.ac_rad = None      # 4 quadrant angle of vector AC in radians
+        self.bc_rad = None      # 4 quadrant angle of vector BC in radians
+        self.bc_dev = None      # Angular deviation of vector BC
 
-def chord_coordinates(chord, stretch):
-    A_x = sqrt(chord ** 2 / (stretch ** 2 + 1))
-    B_y = stretch * A_x
-    A, B = (A_x, 0), (0, B_y)
-    return A, B
 
 
-def diffuser_coordinates(inlet, outlet, stretch_centre, chord):
-    chord_c1 = 1 + 1 / stretch_centre ** 2                         # 1st chord coefficient
-    chord_c2 = outlet + inlet / stretch_centre                     # 2nd chord coefficient
-    chord_c3 = (inlet ** 2 + outlet ** 2) / 4 - chord ** 2  # 3rd chord coefficient
+def calculate_points_from_chord(chord: float, stretch:float) -> tuple[tuple[float, float], tuple[float, float]]:
+    """Calculates the start and end coordinates of a spiral from the chord and the stretch"""
+    a_x = sqrt(chord ** 2 / (stretch ** 2 + 1))
+    b_y = stretch * a_x
+    a, b = (a_x, 0), (0, b_y)
+    return a, b
+
+
+def diffuser_coordinates(inlet_width:float, outlet_width:float, stretch_centre:float, chord:float):
+    """Calculates the start and end coordinates of the three spirals defining a diffuser"""
+    chord_c1 = 1 + 1 / stretch_centre ** 2                               # 1st chord coefficient
+    chord_c2 = outlet_width + inlet_width / stretch_centre               # 2nd chord coefficient
+    chord_c3 = (inlet_width ** 2 + outlet_width ** 2) / 4 - chord ** 2   # 3rd chord coefficient
     B_y_centre = (sqrt(chord_c2 ** 2 - 4 * chord_c1 * chord_c3) - chord_c2) / (2 * chord_c1)
-    B_y_inner = B_y_centre - outlet / 2
-    B_y_outer = B_y_centre + outlet / 2
+    B_y_inner = B_y_centre - outlet_width / 2
+    B_y_outer = B_y_centre + outlet_width / 2
     A_x_centre = B_y_centre / stretch_centre
-    A_x_inner = A_x_centre - inlet / 2
-    A_x_outer = A_x_centre + inlet / 2
+    A_x_inner = A_x_centre - inlet_width / 2
+    A_x_outer = A_x_centre + inlet_width / 2
     stretch_inner = B_y_inner / A_x_inner
     stretch_outer = B_y_outer / A_x_outer
     B_inner, B_centre, B_outer = (0, B_y_inner), (0, B_y_centre), (0, B_y_outer)
@@ -84,21 +94,21 @@ def spiral_geometry(A, B, AC_deg, BC_deg, name='spiral'):
     return AB_len, AB_rad, AC_rad, BC_rad, BC_dev
 
 
-def geometry_check(AB_rad, AC_rad, BC_rad):
+def validate_input_and_output_angles(AB_rad, AC_rad, BC_rad):
+    """Checks if spiral can be computed based on the input and putput angles"""
     if AC_rad == BC_rad:
-        print("invalid geometry: angle at point 'A' is the same as angle at point 'B'")
+        raise ValueError("Invalid geometry: angle at point 'A' is the same as angle at point 'B'")
     elif AC_rad == AB_rad:
-        print("invalid geometry: angle at point 'A' is coincident with vector connecting the points")
+        raise ValueError("Invalid geometry: angle at point 'A' is coincident with vector connecting the points")
     elif BC_rad == AB_rad:
-        print("invalid geometry: angle at point 'B' is coincident with vector connecting the points")
+        raise ValueError("Invalid geometry: angle at point 'B' is coincident with vector connecting the points")
     elif AB_rad - AC_rad > 0 and AB_rad - BC_rad > 0:
-        print("either angle 'A' is too small or angle 'B' is too large for the given points")
+        raise ValueError("Either angle 'A' is too small or angle 'B' is too large for the given points")
     elif AB_rad - AC_rad < 0 and AB_rad - BC_rad < 0:
-        print("either angle 'A' is too large or angle 'B' is too small for the given points")
+        raise ValueError("Either angle 'A' is too large or angle 'B' is too small for the given points")
     else:
         print("basic geometric requirements have been met")
         return
-    exit()
 
 
 def triangle_geometry(AB_rad, AC_rad, BC_rad, AB_len, A):
@@ -183,23 +193,32 @@ def sf(num, fig):  # return significant figure
     return '{:g}'.format(float('{:.{p}g}'.format(num, p=fig)))
 
 
-def diffuser_table(spirals):
+def print_diffuser_table(spirals):
+    """ Print the spiral characteristics to the console in table format"""
     s1, s2, s3 = spirals
+
+    data = [
+        ("Horizontal origin",    "x",       s1.s_x_orig,    s2.s_x_orig,    s3.s_x_orig),
+        ("Vertical origin",      "y",       s1.s_y_orig,    s2.s_y_orig,    s3.s_y_orig),
+        ("Polar slope angle",    "α",       s1.s_po_angle,  s2.s_po_angle,  s3.s_po_angle),
+        ("Scaling factor",       "a",       s1.s_factor,    s2.s_factor,    s3.s_factor),
+        ("Polar slope",          "b",       s1.s_po_slope,  s2.s_po_slope,  s3.s_po_slope),
+        ("Polar coordinate (A)", "tₐ",      s1.s_po_A,      s2.s_po_A,      s3.s_po_A),
+        ("Polar coordinate (B)", "t_b",     s1.s_po_B,      s2.s_po_B,      s3.s_po_B),
+        ("Horizontal offset",    "",        s1.s_x_offset,  s2.s_x_offset,  s3.s_x_offset),
+        ("Vertical offset",      "",        s1.s_y_offset,  s2.s_y_offset,  s3.s_y_offset)]
+
+    header = ("Characteristic", "Symbol", s1.name, s2.name, s3.name)
+
+    row_format = "{:<21} | {:<6} | {:>13} | {:>13} | {:>12}"
     print()
-    print("characteristic            |\t  sign\t|",   s1.name,         "\t|",   s2.name,           "|",   s3.name)
-    print("------------------------------------------------------------------------------------")
-    print("horizontal spiral origin  |\t    x \t|\t", s1.s_x_orig,   "\t\t|\t", s2.s_x_orig,   "\t\t|\t", s3.s_x_orig)
-    print("vertical spiral origin    |\t    y \t|\t", s1.s_y_orig,   "\t\t|\t", s2.s_y_orig,   "\t\t|\t", s3.s_y_orig)
-    print("polar slope angle         |\talpha \t|\t", s1.s_po_angle, "\t\t|\t", s2.s_po_angle, "\t\t|\t", s3.s_po_angle)
-    print("scaling factor            |\t    a \t|\t", s1.s_factor,   "\t\t|\t", s2.s_factor,   "\t\t|\t", s3.s_factor)
-    print("polar slope               |\t    b \t|\t", s1.s_po_slope, "\t\t|\t", s2.s_po_slope, "\t\t|\t", s3.s_po_slope)
-    print("polar coordinate at A     |\t  t_a \t|\t", s1.s_po_A,     "\t\t|\t", s2.s_po_A,     "\t\t|\t", s3.s_po_A)
-    print("polar coordinate at B     |\t  t_b \t|\t", s1.s_po_B,     "\t\t|\t", s2.s_po_B,     "\t\t|\t", s3.s_po_B)
-    print("horizontal offset         |\t      \t|\t", s1.s_x_offset, "\t\t|\t", s2.s_x_offset, "\t\t|\t", s3.s_x_offset)
-    print("vertical offset           |\t      \t|\t", s1.s_y_offset, "\t\t|\t", s2.s_y_offset, "\t\t|\t", s3.s_y_offset)
+    print(row_format.format(*header))
+    print("-" * 77)
+    for row in data:
+        print(row_format.format(*row))
 
-
-def spiral_equations(t_a, t_b, a, b, x_offset, y_offset, name='spiral'):
+def print_spiral_equations(t_a, t_b, a, b, x_offset, y_offset, name='spiral'):
+    """Prints the spiral equations to the console"""
     print()
     print(f"{name} from {t_a} to {t_b}")
     print(f"x = {a} * exp({b} * t) * cos(t) + {x_offset}")
@@ -207,10 +226,11 @@ def spiral_equations(t_a, t_b, a, b, x_offset, y_offset, name='spiral'):
 
 
 def diffuser_equations(spirals):
+    """Prints the three spiral equations from the diffuser to the console"""
     s1, s2, s3, = spirals
-    spiral_equations(s1.po_A, s1.po_B, s1.factor, s1.po_slope, s1.x_offset, s1.y_offset, s1.name)
-    spiral_equations(s2.po_A, s2.po_B, s2.factor, s2.po_slope, s2.x_offset, s2.y_offset, s2.name)
-    spiral_equations(s3.po_A, s3.po_B, s3.factor, s3.po_slope, s3.x_offset, s3.y_offset, s3.name)
+    print_spiral_equations(s1.po_A, s1.po_B, s1.factor, s1.po_slope, s1.x_offset, s1.y_offset, s1.name)
+    print_spiral_equations(s2.po_A, s2.po_B, s2.factor, s2.po_slope, s2.x_offset, s2.y_offset, s2.name)
+    print_spiral_equations(s3.po_A, s3.po_B, s3.factor, s3.po_slope, s3.x_offset, s3.y_offset, s3.name)
 
 
 def save_diffuser(spirals, file_name):

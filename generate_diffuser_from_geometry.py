@@ -1,4 +1,4 @@
-from func_core import diffuser_calculator
+from func_core import generate_diffuser_from_geometry
 
 # basic geometry parameters
 AC_deg = 90                 # 4 quadrant angle of vector A in degrees
@@ -24,4 +24,4 @@ suggested_chord = ((inlet + thick)**2 + (outlet + thick)**2)**0.5 / suggested_ga
 print(f'suggested chord is {suggested_chord} based on a gap-to-chord ratio of {suggested_gap_to_chord}')
 
 # Execute core function
-diffuser_calculator(inlet, outlet, stretch, chord, AC_deg, BC_deg, thick, acc, limit)
+generate_diffuser_from_geometry(inlet, outlet, stretch, chord, AC_deg, BC_deg, thick, acc, limit)
