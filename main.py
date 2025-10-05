@@ -1,6 +1,6 @@
 # Fit logarithmic spirals to specific geometric properties
 
-from log_spiral_func import *
+from func_core import *
 
 # basic geometry parameters
 A = (3, 0)                  # x & y coordinate of point A
