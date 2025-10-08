@@ -2,7 +2,7 @@ from func_core import generate_diffuser_from_geometry
 
 # basic geometry parameters
 ac_deg = 90                 # 4 quadrant angle of vector A in degrees
-bc_deg = 180                # 4 quadrant angle of vector B in degrees
+bc_deg = 160                # 4 quadrant angle of vector B in degrees
 
 # chord parameters
 chord = 200                 # chord length of OUTER diffuser curve

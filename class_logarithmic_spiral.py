@@ -162,13 +162,13 @@ class LogarithmicSpiral:
         return bd_len, segment
 
 
-    def validate_triangle_geometry(self, solver_accuracy):
+    def validate_triangle_geometry(self):
         """Checks if spiral can be computed based on the minimum and maximum angles of incidence (β_max & β_min)"""
 
         # Calculate the segment lengths at the minimum and maximum angles of incidence (beta)
         bd_len_min, seg_min = self.calculate_bd_vector_and_segment_length(self.beta_max - 0.01)
         bd_len_max, seg_max = self.calculate_bd_vector_and_segment_length(self.beta_min + 0.01)
-
+        print(f'{self.name}')
         # If the segment is smaller than bd, angle beta needs to be decreased
         # If the segment is larger than bd, angle beta needs to be increased
         # If there is a valid solution:

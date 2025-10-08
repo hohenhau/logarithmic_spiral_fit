@@ -51,7 +51,7 @@ def generate_diffuser_from_geometry(inlet_width, outlet_width, thickness, stretc
         s.calculate_tangent_geometry(a_xy, b_xy, ac_deg, bc_deg)
         s.validate_tangent_geometry()
         s.calculate_triangle_geometry()
-        s.validate_triangle_geometry(solver_accuracy)
+        s.validate_triangle_geometry()
         s.calculate_origin_location(solver_accuracy, iter_limit, verbose=verbose)
         s.calculate_origin_offsets(inlet_width, outlet_width, thickness)
         spirals.append(s)
