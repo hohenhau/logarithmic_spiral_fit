@@ -26,7 +26,6 @@ class LogarithmicSpiral:
         self.origin_y = None        # vertical spiral origin
         self.x_offset = 0           # horizontal spiral origin
         self.y_offset = 0           # vertical spiral origin
-        self.polar_angle = None     # polar slope angle
         self.polar_a = None         # polar coordinate at A
         self.polar_b = None         # polar coordinate at B
         self.factor = None          # scaling factor
@@ -152,8 +151,8 @@ class LogarithmicSpiral:
         # Calculate the polar, slope and the polar angles to points A and B
         self.alpha = beta - pi / 2  # polar tangential angle
         self.polar_slope_b = self.growth * abs(tan(self.alpha))  # polar slope 'b'
-        self.t_a_rad = arctan((a_y - d_y) / (a_x - d_x))  # polar angle 't_a'
-        self.t_b_rad = self.t_a_rad + self.theta  # polar angle 't_b'
+        self.t_a_rad = arctan((a_y - d_y) / (a_x - d_x))  # polar angle to coordinate A't_a'
+        self.t_b_rad = self.t_a_rad + self.theta  # polar angle to coordinate B 't_b'
         self.scale_factor_a = (a_x - d_x) / (exp(self.polar_slope_b * self.t_a_rad) * cos(self.t_a_rad))  # factor 'a'
 
         # Calculate the X and y components of the spiral segment

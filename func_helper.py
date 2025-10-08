@@ -5,11 +5,7 @@
 
 import matplotlib.pyplot as plt                 # import graphing library
 import numpy as np                              # importing commonly used mathematical functions
-from numpy import pi, exp, sqrt, abs, round     # import various functions from numpy library
-from numpy import cos, sin, tan                 # import various trigonometric functions
-from numpy import degrees, radians              # import conversion functions
-from numpy import arctan, arctan2               # importing the inverse and the 4 quadrant inverse tangent
-from sys import exit
+from numpy import sqrt                          # import various functions from numpy library
 
 
 # ----- Additional Plotting Functions -------------------------------------------------------------------------------- #
@@ -77,7 +73,7 @@ def print_diffuser_table(spirals):
     data = [
         ("Horizontal origin",    "x",   fmt(s1.origin_xy[0]),   fmt(s2.origin_xy[0]),   fmt(s3.origin_xy[0])),
         ("Vertical origin",      "y",   fmt(s1.origin_xy[1]),   fmt(s2.origin_xy[1]),   fmt(s3.origin_xy[1])),
-        ("Polar slope angle",    "α",   fmt(s1.polar_angle),    fmt(s2.polar_angle),    fmt(s3.polar_angle)),
+        ("Polar slope angle",    "α",   fmt(s1.alpha),          fmt(s2.alpha),          fmt(s3.alpha)),
         ("Scaling factor",       "a",   fmt(s1.scale_factor_a), fmt(s2.scale_factor_a), fmt(s3.scale_factor_a)),
         ("Polar slope",          "b",   fmt(s1.polar_slope_b),  fmt(s2.polar_slope_b),  fmt(s3.polar_slope_b)),
         ("Polar coordinate (A)", "t_a", fmt(s1.t_a_rad),        fmt(s2.t_a_rad),        fmt(s3.t_a_rad)),
@@ -100,10 +96,10 @@ def save_diffuser(spirals, file_name):
     with open(file_name, 'w', encoding='utf-8-sig') as file:
         file.write("name,x,y,lower_limit,upper_limit" + "\n")
         for s in spirals:
-            x = f"{s.factor}*exp({s.polar_slope_b}*t)*cos(t)+{s.x_offset},"
-            y = f"{s.factor}*exp({s.polar_slope_b}*t)*sin(t)+{s.y_offset},"
-            lim_l = f"{s.polar_a},"
-            lim_u = f"{s.polar_b}"
+            x = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*cos(t)+{s.x_offset},"
+            y = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*sin(t)+{s.y_offset},"
+            lim_l = f"{s.t_a_rad},"
+            lim_u = f"{s.t_b_rad}"
             name = f'{s.name},'
             row = name + y + x + lim_l + lim_u + "\n"
             file.write(row)
