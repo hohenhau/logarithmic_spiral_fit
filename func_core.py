@@ -77,7 +77,7 @@ def generate_log_vane_from_geometry(horizontal_pitch, vertical_pitch, thickness,
         points_start = points.start.x, points.start.y
         points_end = points.end.x, points.end.y
         s = LogarithmicSpiral(points_start, points_end, ac_deg, bc_deg, points.name)
-        s.calculate_tangent_geometry(points_start, points_end, ac_deg, bc_deg)
+        s.calculate_tangent_geometry()
         s.validate_tangent_geometry()
         s.calculate_triangle_geometry()
         s.validate_triangle_geometry()
@@ -85,6 +85,8 @@ def generate_log_vane_from_geometry(horizontal_pitch, vertical_pitch, thickness,
         s.calculate_origin_offsets(horizontal_pitch, vertical_pitch, thickness)
         spirals.append(s)
     tabulate_spirals(spirals)
+
+    # Print the spiral equations to the console
     for s in spirals:
         print(s)
 

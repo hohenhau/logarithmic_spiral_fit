@@ -24,7 +24,8 @@ def plot_graph_elements():
     plt.ylabel('Y')
     plt.axhline(0, color='black')   # x = 0
     plt.axvline(0, color='black')   # y = 0
-    plt.grid()
+    plt.grid(True)
+    plt.axis('equal')   # Ensures X and Y have the same scale
     plt.show()
 
 
@@ -140,7 +141,7 @@ def log_vane_coordinates(
 
     # Calculate the start and end coordinates for the end fillet
     chamfer_a = LineCoordinates('chamfer_start_a', extension_ends_a.start, spiral_ends_lower.start, LineType.SEMICIRCLE)
-    chamfer_b = LineCoordinates('chamfer_start_a', spiral_ends_lower.end, extension_ends_b.end, LineType.SEMICIRCLE)
+    chamfer_b = LineCoordinates('chamfer_start_b', spiral_ends_lower.end, extension_ends_b.start, LineType.SEMICIRCLE)
 
     # Bundle the line and spiral coordinates into lists
     spiral_ends = [spiral_ends_lower, spiral_ends_upper]

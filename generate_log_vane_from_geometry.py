@@ -1,8 +1,8 @@
 from func_core import generate_log_vane_from_geometry
 
 # basic geometry parameters
-ac_deg = 100     # 4 quadrant angle of vector A in degrees
-bc_deg = 170    # 4 quadrant angle of vector B in degrees
+ac_deg = 110     # 4 quadrant angle of vector A in degrees
+bc_deg = 160    # 4 quadrant angle of vector B in degrees
 
 # chord parameters
 chord = 100     # chord length of OUTER diffuser curve

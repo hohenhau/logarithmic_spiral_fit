@@ -61,31 +61,27 @@ class LineCoordinates:
         return x, y
 
 
-    def generate_graph_coordinates_semi_circle(self, num_points=10, clockwise=False) -> tuple[list[float], list[float]]:
+    def generate_graph_coordinates_semi_circle(self, num_points=50, clockwise=False) -> tuple[list[float], list[float]]:
         # Midpoint between start and end
-        centroid_x = (self.start.x + self.end.x) / 2
-        centroid_y = (self.start.y + self.end.y) / 2
+        cx = (self.start.x + self.end.x) / 2
+        cy = (self.start.y + self.end.y) / 2
 
-        # Radius (half the distance between start and end)
+        # Vector from start to end
         dx = self.end.x - self.start.x
         dy = self.end.y - self.start.y
         radius = math.sqrt(dx ** 2 + dy ** 2) / 2
 
-        # Angle of the line connecting start to end
-        base_angle = math.atan2(dy, dx)
+        # Angle of start→end
+        theta = math.atan2(dy, dx)
 
-        # Determine direction of semicircle sweep
+        # Generate semicircle angles
         if clockwise:
-            start_angle = base_angle + math.pi / 2
-            end_angle = base_angle - math.pi / 2
+            angles = [theta - math.pi + i * math.pi / (num_points - 1) for i in range(num_points)]
         else:
-            start_angle = base_angle - math.pi / 2
-            end_angle = base_angle + math.pi / 2
+            angles = [theta + math.pi - i * math.pi / (num_points - 1) for i in range(num_points)]
 
-        # Generate semicircle points
-        angles = [start_angle + i * (end_angle - start_angle) / (num_points - 1) for i in range(num_points)]
-
-        x = [centroid_x + radius * math.cos(a) for a in angles]
-        y = [centroid_y + radius * math.sin(a) for a in angles]
+        # Compute coordinates
+        x = [cx + radius * math.cos(a) for a in angles]
+        y = [cy + radius * math.sin(a) for a in angles]
 
         return x, y

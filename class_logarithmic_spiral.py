@@ -14,12 +14,14 @@ class LogarithmicSpiral:
         """Initialises an instance of LogarithmicSpiral"""
 
         # Input characteristics and geometry
-        self.name = name  # name of the spiral
-        self.style = '-'
-        self.a_xy = a_xy
-        self.b_xy = b_xy
-        self.ac_deg = ac_deg
-        self.bc_deg = bc_deg
+        self.name = name                # name of the spiral
+        self.a_xy = a_xy                # X and Y coordinates at point A
+        self.b_xy = b_xy                # X and Y coordinates at point B
+        self.ac_deg = ac_deg            # 4-quadrant angle of Vector AC in degrees
+        self.bc_deg = bc_deg            # 4-quadrant angle of Vector BC in degrees
+        self.ac_rad = radians(ac_deg)   # 4-quadrant angle of vector AC in radians
+        self.bc_rad = radians(bc_deg)   # 4-quadrant angle of vector BC in radians
+        self.style = '-'                # Graphing line style of spiral
 
         # Geometric characteristics of the logarithmic spiral
         self.origin_xy = None       # X and Y coordinates of the origin
@@ -33,9 +35,7 @@ class LogarithmicSpiral:
 
         # Tangent geometry
         self.ab_len = None          # Length from point A to point B
-        self.ab_rad = None          # 4 quadrant angle of vector AB in radians
-        self.ac_rad = None          # 4 quadrant angle of vector AC in radians
-        self.bc_rad = None          # 4 quadrant angle of vector BC in radians
+        self.ab_rad = None          # 4-quadrant angle of vector AB in radians
         self.bc_dev = None          # Angular deviation of vector BC
 
         # Triangle geometry
@@ -68,21 +68,21 @@ class LogarithmicSpiral:
             f"y = {fmt(self.scale_factor_a)} * exp({fmt(self.polar_slope_b)} * t) * sin(t) + {fmt(self.y_offset)}")
 
 
-    def calculate_tangent_geometry(self, point_a, point_b, ac_deg, bc_deg):
+    def calculate_tangent_geometry(self):
         # Calculate connecting vector AB from start and end coordinates
-        ab_x = point_b[0] - point_a[0]  # x component of vector AB (connecting points A and B)
-        ab_y = point_b[1] - point_a[1]  # y component of vector AB (connecting points A and B)
+
+        ab_x = self.b_xy[0] - self.a_xy[0]  # x component of vector AB (connecting points A and B)
+        ab_y = self.b_xy[1] - self.a_xy[1]  # y component of vector AB (connecting points A and B)
         self.ab_len = sqrt(ab_x ** 2 + ab_y ** 2)  # length of vector AB (between points A and B)
         print(f"\nperforming calculations for {self.name} (height = {ab_y} and width = {ab_x})")
 
-        # Calculate the various angles related to vector AB (in radians)
-        self.ab_rad = arctan2(ab_y, ab_x)  # 4 quadrant angle of vector AB in radians
-        self.ac_rad = radians(ac_deg)  # 4 quadrant angle of vector A in radians
-        self.bc_rad = radians(bc_deg)  # 4 quadrant angle of vector B in radians
+        # Calculate the 4-quadrant angle of vector AB in radians
+        self.ab_rad = arctan2(ab_y, ab_x)
+        ab_deg = degrees(self.ab_rad)
 
         # Calculate and display angle AB in degrees
         ab_deg = degrees(self.ab_rad)  # 4 quadrant angle of vector AB in degrees
-        print(f"\nAngle AC = {ac_deg:.3g}, angle BC = {bc_deg:.3g}, and angle AB = {ab_deg:.3g}")
+        print(f"\nAngle AC = {self.ac_deg:.3g}, angle BC = {self.bc_deg:.3g}, and angle AB = {ab_deg:.3g}")
 
 
     def validate_tangent_geometry(self):
@@ -220,9 +220,8 @@ class LogarithmicSpiral:
         self.y_offset = self.origin_xy[1] + (outlet_width + thickness / cos(bc_dev) + inlet_width * tan(bc_dev))
 
 
-    def generate_graph_coordinates(self):
-        step = (self.t_b_rad - self.t_a_rad) / 400
-        t_values = np.arange(self.t_a_rad, self.t_b_rad, step)  # evenly spaced values (beginning, end, step size)
+    def generate_graph_coordinates(self, num_points=400):
+        t_values = np.linspace(self.t_a_rad, self.t_b_rad, num_points)  # evenly spaced values (beginning, end, steps)
         x_values = self.scale_factor_a * exp(self.polar_slope_b * t_values) * cos(t_values) + self.origin_xy[0]
         y_values = self.scale_factor_a * exp(self.polar_slope_b * t_values) * sin(t_values) + self.origin_xy[1]
         spiral_tuples = list(zip(x_values, y_values))  # turn coordinates into a list of tuples with zip
