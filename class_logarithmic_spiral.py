@@ -220,7 +220,7 @@ class LogarithmicSpiral:
         self.y_offset = self.origin_xy[1] + (outlet_width + thickness / cos(bc_dev) + inlet_width * tan(bc_dev))
 
 
-    def plot_spiral(self):
+    def generate_graph_coordinates(self):
         step = (self.t_b_rad - self.t_a_rad) / 400
         t_values = np.arange(self.t_a_rad, self.t_b_rad, step)  # evenly spaced values (beginning, end, step size)
         x_values = self.scale_factor_a * exp(self.polar_slope_b * t_values) * cos(t_values) + self.origin_xy[0]
@@ -229,4 +229,55 @@ class LogarithmicSpiral:
         spiral_values = np.array(spiral_tuples)
         x_trim = spiral_values[:, 0:1]
         y_trim = spiral_values[:, 1:]
-        plt.plot(x_trim, y_trim, self.style, label=self.name)
+        return x_trim, y_trim
+
+
+# ----- Static Functions --------------------------------------------------------------------------------------------- #
+
+def tabulate_spirals(spirals):
+    """Print the spiral characteristics to the console in table format"""
+    if not spirals:
+        return
+
+    def fmt(x):
+        return f"{x:.3g}" if isinstance(x, (int, float)) else str(x)
+
+    labels = [
+        ("Horizontal origin", "x", lambda s: s.origin_xy[0]),
+        ("Vertical origin", "y", lambda s: s.origin_xy[1]),
+        ("Polar slope angle", "α", lambda s: s.alpha),
+        ("Scaling factor", "a", lambda s: s.scale_factor_a),
+        ("Polar slope", "b", lambda s: s.polar_slope_b),
+        ("Polar coordinate (A)", "t_a", lambda s: s.t_a_rad),
+        ("Polar coordinate (B)", "t_b", lambda s: s.t_b_rad),
+        ("Horizontal offset", "", lambda s: s.x_offset),
+        ("Vertical offset", "", lambda s: s.y_offset),
+    ]
+
+    header = ["Characteristic", "Symbol"] + [s.name for s in spirals]
+    col_count = len(header)
+    col_widths = [21, 6] + [13] * (col_count - 2)
+    row_format = " | ".join(f"{{:<{w}}}" if i < 2 else f"{{:>{w}}}" for i, w in enumerate(col_widths))
+
+    print()
+    print(row_format.format(*header))
+    print("-" * (sum(col_widths) + 3 * (col_count - 1)))
+
+    for label, symbol, getter in labels:
+        row = [label, symbol] + [fmt(getter(s)) for s in spirals]
+        print(row_format.format(*row))
+
+
+def save_spiral_equations(spirals, file_name):
+    """Saves the various spiral equations to a csv file"""
+    with open(file_name, 'w', encoding='utf-8-sig') as file:
+        file.write("name,x,y,lower_limit,upper_limit" + "\n")
+        for s in spirals:
+            x = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*cos(t)+{s.x_offset},"
+            y = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*sin(t)+{s.y_offset},"
+            lim_l = f"{s.t_a_rad},"
+            lim_u = f"{s.t_b_rad}"
+            name = f'{s.name},'
+            row = name + y + x + lim_l + lim_u + "\n"
+            file.write(row)
+    print(f"successfully exported equations")

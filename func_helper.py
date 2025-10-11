@@ -3,22 +3,21 @@
 
 # section to import various standard libraries
 
-import matplotlib.pyplot as plt                 # import graphing library
-import numpy as np                              # importing commonly used mathematical functions
-from numpy import sqrt                          # import various functions from numpy library
+import matplotlib.pyplot as plt     # import graphing library
+import numpy as np                  # importing commonly used mathematical functions
+from numpy import sqrt              # import various functions from numpy library
+from class_line import *            # Import the line class
 
 
 # ----- Additional Plotting Functions -------------------------------------------------------------------------------- #
 
 
-def plot_line(points, style, label):
-    """Plots a simple straight line"""
-    line = np.array(points)
-    x, y = line[:, 0:1], line[:, 1:]
+def plot_xy_coordinates(x, y, style, label):
+    """Plots a set of coordinates"""
     plt.plot(x, y, style, label=label)
 
 
-def plot_general():
+def plot_graph_elements():
     """The basis for a general line plot"""
     plt.legend()
     plt.xlabel('X')
@@ -29,8 +28,7 @@ def plot_general():
     plt.show()
 
 
-# ----- Diffuser Related Functions ----------------------------------------------------------------------------------- #
-
+# ----- General Geometry Functions ----------------------------------------------------------------------------------- #
 
 def calculate_points_from_chord(chord: float, stretch:float) -> tuple[tuple[float, float], tuple[float, float]]:
     """Calculates the start and end coordinates of a spiral from the chord and the stretch"""
@@ -40,7 +38,9 @@ def calculate_points_from_chord(chord: float, stretch:float) -> tuple[tuple[floa
     return a, b
 
 
-def diffuser_coordinates(inlet_width:float, outlet_width:float, stretch_centre:float, chord:float):
+# ----- Diffuser Related Functions ----------------------------------------------------------------------------------- #
+
+def diffuser_spiral_coordinates(inlet_width:float, outlet_width:float, stretch_centre:float, chord:float):
     """Calculates the start and end coordinates of the three spirals defining a diffuser"""
     chord_c1 = 1 + 1 / stretch_centre ** 2                               # 1st chord coefficient
     chord_c2 = outlet_width + inlet_width / stretch_centre               # 2nd chord coefficient
@@ -57,58 +57,94 @@ def diffuser_coordinates(inlet_width:float, outlet_width:float, stretch_centre:f
     a_inner, a_centre, a_outer = (a_x_inner, 0), (a_x_centre, 0), (a_x_outer, 0)
     print("\nstretch of inner, centre, and outer curves respectively:")
     print(stretch_inner, stretch_centre, stretch_outer)
-    coordinates = [["inner spiral", a_inner, b_inner],
-                   ["centre spiral", a_centre, b_centre],
-                   ["outer spiral", a_outer, b_outer]]
-    return coordinates
+    spiral_coordinates = [["inner spiral", a_inner, b_inner],
+                          ["centre spiral", a_centre, b_centre],
+                          ["outer spiral", a_outer, b_outer]]
+    return spiral_coordinates
 
 
-def print_diffuser_table(spirals):
-    """Print the spiral characteristics to the console in table format"""
-    s1, s2, s3 = spirals
+# ----- Logarithmic Vane Related Functions --------------------------------------------------------------------------- #
 
-    def fmt(x):
-        return f"{x:.3g}" if isinstance(x, (int, float)) else str(x)
+def calculate_vane_spiral_end_points(thickness, chord_lower, stretch_lower, horizontal_pitch, vertical_pitch, ac_rad, bc_rad):
 
-    data = [
-        ("Horizontal origin",    "x",   fmt(s1.origin_xy[0]),   fmt(s2.origin_xy[0]),   fmt(s3.origin_xy[0])),
-        ("Vertical origin",      "y",   fmt(s1.origin_xy[1]),   fmt(s2.origin_xy[1]),   fmt(s3.origin_xy[1])),
-        ("Polar slope angle",    "α",   fmt(s1.alpha),          fmt(s2.alpha),          fmt(s3.alpha)),
-        ("Scaling factor",       "a",   fmt(s1.scale_factor_a), fmt(s2.scale_factor_a), fmt(s3.scale_factor_a)),
-        ("Polar slope",          "b",   fmt(s1.polar_slope_b),  fmt(s2.polar_slope_b),  fmt(s3.polar_slope_b)),
-        ("Polar coordinate (A)", "t_a", fmt(s1.t_a_rad),        fmt(s2.t_a_rad),        fmt(s3.t_a_rad)),
-        ("Polar coordinate (B)", "t_b", fmt(s1.t_b_rad),        fmt(s2.t_b_rad),        fmt(s3.t_b_rad)),
-        ("Horizontal offset",    "",    fmt(s1.x_offset),       fmt(s2.x_offset),       fmt(s3.x_offset)),
-        ("Vertical offset",      "",    fmt(s1.y_offset),       fmt(s2.y_offset),       fmt(s3.y_offset)),
-    ]
+    # Calculate the start and end coordinates for the lower vane surface
+    lower_width = chord_lower / np.sqrt(stretch_lower**2 +1)
+    lower_height = stretch_lower * lower_width
+    a_lower = Coordinate(name='a_lower', x=lower_width, y=0)
+    b_lower = Coordinate(name='b_lower', x=0, y=lower_height)
 
-    header = ("Characteristic", "Symbol", s1.name, s2.name, s3.name)
-    row_format = "{:<21} | {:<6} | {:>13} | {:>13} | {:>13}"
+    # Calculate the start coordinate for the upper vane surface
+    a_x_upper = a_lower.x + abs(thickness * np.sin(ac_rad)) + vertical_pitch * np.cos(ac_rad)
+    a_y_upper = a_lower.y + vertical_pitch
+    a_upper = Coordinate(name='a_upper', x=a_x_upper, y=a_y_upper)
 
-    print()
-    print(row_format.format(*header))
-    print("-" * 78)
-    for row in data:
-        print(row_format.format(*row))
+    # Calculate the end coordinate for the upper vane surface
+    b_x_upper = b_lower.x + horizontal_pitch
+    b_y_upper = b_lower.y + abs(thickness * np.cos(bc_rad)) - horizontal_pitch * np.sin(bc_rad)
+    b_upper = Coordinate(name='b_upper', x=b_x_upper, y=b_y_upper)
+
+    # Define lower and upper spiral_lines
+    spiral_ends_lower = LineCoordinates('spiral_lower', a_lower, b_lower, LineType.SPIRAL)
+    spiral_ends_upper = LineCoordinates('spiral_upper', a_upper, b_upper, LineType.SPIRAL)
+
+    return spiral_ends_lower, spiral_ends_upper
 
 
-def save_diffuser(spirals, file_name):
-    with open(file_name, 'w', encoding='utf-8-sig') as file:
-        file.write("name,x,y,lower_limit,upper_limit" + "\n")
-        for s in spirals:
-            x = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*cos(t)+{s.x_offset},"
-            y = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*sin(t)+{s.y_offset},"
-            lim_l = f"{s.t_a_rad},"
-            lim_u = f"{s.t_b_rad}"
-            name = f'{s.name},'
-            row = name + y + x + lim_l + lim_u + "\n"
-            file.write(row)
-    print(f"successfully exported equations")
+def calculate_line_extensions_end_points(
+        spiral_lower_ends:LineCoordinates,
+        spiral_upper_ends:LineCoordinates,
+        ac_rad:float,
+        bc_rad:float,
+        thickness:float):
+
+    # Calculate the start and end coordinates for the upper vane extensions
+    ext_start_x = spiral_lower_ends.start.x + thickness * np.sin(ac_rad)
+    ext_start_y = spiral_lower_ends.start.y - thickness * np.cos(ac_rad)
+    ext_end_x = spiral_lower_ends.end.x + thickness * np.sin(bc_rad)
+    ext_end_y = spiral_lower_ends.end.y - thickness * np.cos(bc_rad)
+
+    # bundle the coordinate components into the standard format
+    ext_a_xy_1 = Coordinate('ext_a_xy_1', ext_start_x, ext_start_y)
+    ext_a_xy_2 = Coordinate('ext_a_xy_2', spiral_upper_ends.start.x, spiral_upper_ends.start.y)
+    ext_b_xy_1 = Coordinate('ext_b_xy_1', ext_end_x, ext_end_y)
+    ext_b_xy_2 = Coordinate('ext_b_xy_2', spiral_upper_ends.end.x, spiral_upper_ends.end.y)
+
+    # bundle the coordinates into the standard line format
+    extension_ends_a = LineCoordinates('extension_line_a', ext_a_xy_1, ext_a_xy_2, LineType.LINE)
+    extension_ends_b = LineCoordinates('extension_line_b', ext_b_xy_1, ext_b_xy_2, LineType.LINE)
+
+    return extension_ends_a, extension_ends_b
 
 
-def plot_diffuser(spirals):
-    s1, s2, s3 = spirals
-    s1.plot_spiral()
-    s2.plot_spiral()
-    s3.plot_spiral()
-    plot_general()
+def log_vane_coordinates(
+        horizontal_pitch:float,
+        vertical_pitch:float,
+        thickness:float,
+        stretch_lower:float,
+        chord_lower:float,
+        ac_deg:float,
+        bc_deg:float):
+    """Calculates the start and end coordinates of the three spirals defining a diffuser"""
+
+    # Convert the angles to radians
+    ac_rad = np.radians(ac_deg)
+    bc_rad = np.radians(bc_deg)
+
+    # Calculate the start and end coordinates for the lower and upper vane spirals
+    spiral_ends_lower, spiral_ends_upper = calculate_vane_spiral_end_points(
+        thickness, chord_lower, stretch_lower, horizontal_pitch, vertical_pitch, ac_rad, bc_rad)
+
+    # Calculate the start and end coordinates for the line extensions
+    extension_ends_a, extension_ends_b = calculate_line_extensions_end_points(
+        spiral_ends_lower, spiral_ends_upper, ac_rad, bc_rad,thickness)
+
+    # Calculate the start and end coordinates for the end fillet
+    chamfer_a = LineCoordinates('chamfer_start_a', extension_ends_a.start, spiral_ends_lower.start, LineType.SEMICIRCLE)
+    chamfer_b = LineCoordinates('chamfer_start_a', spiral_ends_lower.end, extension_ends_b.end, LineType.SEMICIRCLE)
+
+    # Bundle the line and spiral coordinates into lists
+    spiral_ends = [spiral_ends_lower, spiral_ends_upper]
+    extension_ends = [extension_ends_a, extension_ends_b]
+    fillet_ends = [chamfer_a, chamfer_b]
+
+    return spiral_ends, extension_ends, fillet_ends
