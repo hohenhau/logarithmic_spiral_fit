@@ -8,7 +8,7 @@ class LineType(Enum):
 
 
 class Coordinate:
-    def __init__(self, name, x=None, y=None, z=None):
+    def __init__(self, x=None, y=None, z=None, name=None):
         self.name = name
         self.x = x
         self.y = y
@@ -29,15 +29,15 @@ class Coordinate:
         return self._format_parts()
 
 
-class LineCoordinates:
+class LineAttributes:
 
 
     def __init__(
             self,
-            name: str,
             start:Coordinate,
             end:Coordinate,
             line_type: LineType,
+            name='',
             style='-') -> None:
 
         self.start = start

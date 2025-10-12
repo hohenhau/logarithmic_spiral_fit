@@ -213,7 +213,7 @@ class LogarithmicSpiral:
             count += 1
 
 
-    def calculate_origin_offsets(self, inlet_width:float, outlet_width:float, thickness:float):
+    def calculate_origin_offsets(self, inlet_width:float, outlet_width:float, thickness=0):
         """Calculates the offset of the spiral origin based on inlet and outlet dimensions"""
         bc_dev = self.bc_rad - pi  # Angular deviation between vector BC and the x-axis
         self.x_offset = self.origin_xy[0] + inlet_width + thickness

@@ -1,17 +1,17 @@
 from func_core import generate_log_vane_from_geometry
 
 # basic geometry parameters
-ac_deg = 110     # 4 quadrant angle of vector A in degrees
-bc_deg = 160    # 4 quadrant angle of vector B in degrees
+ac_deg = 90     # 4 quadrant angle of vector A in degrees
+bc_deg = 120    # 4 quadrant angle of vector B in degrees
 
 # chord parameters
-chord = 100     # chord length of OUTER diffuser curve
-stretch = 1  # stretch of CENTRAL curve (height / width)
+chord = 200     # chord length of OUTER diffuser curve
+stretch = 3  # stretch of CENTRAL curve (height / width)
 
 # diffuser parameters
 thickness = 2                   # thickness of the vanes
-horizontal_pitch = 20    # width of inlet
-vertical_pitch = 20   # width of outlet
+horizontal_pitch = 5    # width of inlet
+vertical_pitch = 40   # width of outlet
 
 # simulation parameters
 solver_accuracy = 0.000000001   # solution accuracy
