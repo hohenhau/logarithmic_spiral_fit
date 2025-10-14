@@ -10,8 +10,25 @@ class LogarithmicSpiral:
     """Contains all relevant characteristics used to define and determine the shape of a logarithmic spiral."""
 
 
-    def __init__(self, a_xy, b_xy, ac_deg, bc_deg, name='spiral'):
+    def __init__(
+            self,
+            a_xy,
+            b_xy,
+            ac_deg,
+            bc_deg,
+            name='spiral',
+            style='-',
+            solver_accuracy=0.000000001,
+            iter_limit=100,
+            verbose=True
+    ):
+
         """Initialises an instance of LogarithmicSpiral"""
+
+        # Solver settings
+        self.solver_accuracy = solver_accuracy
+        self.iter_limit = iter_limit
+        self.verbose = verbose
 
         # Input characteristics and geometry
         self.name = name                # name of the spiral
@@ -21,7 +38,7 @@ class LogarithmicSpiral:
         self.bc_deg = bc_deg            # 4-quadrant angle of Vector BC in degrees
         self.ac_rad = radians(ac_deg)   # 4-quadrant angle of vector AC in radians
         self.bc_rad = radians(bc_deg)   # 4-quadrant angle of vector BC in radians
-        self.style = '-'                # Graphing line style of spiral
+        self.style = style              # Graphing line style of spiral
 
         # Geometric characteristics of the logarithmic spiral
         self.origin_xy = None       # X and Y coordinates of the origin
@@ -54,6 +71,13 @@ class LogarithmicSpiral:
         self.polar_slope_b = None   # polar slope 'b'
         self.t_a_rad = None         # polar angle t_a
         self.t_b_rad = None         # polar angle t_b
+
+        # Execute the various base claculations
+        self.calculate_tangent_geometry()
+        self.validate_tangent_geometry()
+        self.calculate_triangle_geometry()
+        self.validate_triangle_geometry()
+        self.calculate_origin_location()
 
 
     def __str__(self):
@@ -180,7 +204,7 @@ class LogarithmicSpiral:
             raise RuntimeError(f'{self.name} cannot be fitted to these points. The turning angle is too large')
 
 
-    def calculate_origin_location(self, solver_accuracy, iter_limit, verbose=True):
+    def calculate_origin_location(self):
         """Binary-search-style algorithm for finding the origin of a spiral"""
 
         count = 1
@@ -189,25 +213,25 @@ class LogarithmicSpiral:
             bd_len, segment = self.calculate_bd_vector_and_segment_length(self.beta)
 
             # Check the accuracy of the guess and repeat calculation if necessary and possible
-            if verbose:
+            if self.verbose:
                 print(f"iteration = {count}, "
                       f"alpha = {self.alpha}, "
                       f"beta = {self.beta}, "
                       f"segment = {segment}, "
                       f"vectorBD = {bd_len}")
-            if segment + solver_accuracy > bd_len > segment - solver_accuracy:
+            if segment + self.solver_accuracy > bd_len > segment - self.solver_accuracy:
                 print(f"achieved accurate solution after {count} iterations")
                 break
-            elif count == iter_limit:
+            elif count == self.iter_limit:
                 raise RuntimeError("Reached iteration limit. Geometry likely invalid")
             elif bd_len < segment:
                 self.beta_min = self.beta
                 self.beta = (self.beta_min + self.beta_max) / 2
-                if verbose: print(f"increasing beta to be between {self.beta_min} and {self.beta_max}")
+                if self.verbose: print(f"increasing beta to be between {self.beta_min} and {self.beta_max}")
             elif bd_len > segment:
                 self.beta_max = self.beta
                 self.beta = (self.beta_min + self.beta_max) / 2
-                if verbose: print(f"decreasing beta to be between {self.beta_min} and {self.beta_max}")
+                if self.verbose: print(f"decreasing beta to be between {self.beta_min} and {self.beta_max}")
             else:
                 raise RuntimeError("Computation error on iterative solution")
             count += 1
@@ -220,63 +244,59 @@ class LogarithmicSpiral:
         self.y_offset = self.origin_xy[1] + (outlet_width + thickness / cos(bc_dev) + inlet_width * tan(bc_dev))
 
 
-    def generate_graph_coordinates(self, num_points=400):
+    def generate_spiral_coordinates(self, num_points=400):
         t_values = np.linspace(self.t_a_rad, self.t_b_rad, num_points)  # evenly spaced values (beginning, end, steps)
-        x_values = self.scale_factor_a * exp(self.polar_slope_b * t_values) * cos(t_values) + self.origin_xy[0]
-        y_values = self.scale_factor_a * exp(self.polar_slope_b * t_values) * sin(t_values) + self.origin_xy[1]
-        spiral_tuples = list(zip(x_values, y_values))  # turn coordinates into a list of tuples with zip
-        spiral_values = np.array(spiral_tuples)
-        x_trim = spiral_values[:, 0:1]
-        y_trim = spiral_values[:, 1:]
-        return x_trim, y_trim
+        xx = self.scale_factor_a * exp(self.polar_slope_b * t_values) * cos(t_values) + self.origin_xy[0]
+        yy = self.scale_factor_a * exp(self.polar_slope_b * t_values) * sin(t_values) + self.origin_xy[1]
+        return xx, yy
 
 
-# ----- Static Functions --------------------------------------------------------------------------------------------- #
+    @staticmethod
+    def tabulate_spirals(spirals):
+        """Print the spiral characteristics to the console in table format"""
+        if not spirals:
+            return
 
-def tabulate_spirals(spirals):
-    """Print the spiral characteristics to the console in table format"""
-    if not spirals:
-        return
+        def fmt(x):
+            return f"{x:.3g}" if isinstance(x, (int, float)) else str(x)
 
-    def fmt(x):
-        return f"{x:.3g}" if isinstance(x, (int, float)) else str(x)
+        labels = [
+            ("Horizontal origin", "x", lambda s: s.origin_xy[0]),
+            ("Vertical origin", "y", lambda s: s.origin_xy[1]),
+            ("Polar slope angle", "α", lambda s: s.alpha),
+            ("Scaling factor", "a", lambda s: s.scale_factor_a),
+            ("Polar slope", "b", lambda s: s.polar_slope_b),
+            ("Polar coordinate (A)", "t_a", lambda s: s.t_a_rad),
+            ("Polar coordinate (B)", "t_b", lambda s: s.t_b_rad),
+            ("Horizontal offset", "", lambda s: s.x_offset),
+            ("Vertical offset", "", lambda s: s.y_offset),
+        ]
 
-    labels = [
-        ("Horizontal origin", "x", lambda s: s.origin_xy[0]),
-        ("Vertical origin", "y", lambda s: s.origin_xy[1]),
-        ("Polar slope angle", "α", lambda s: s.alpha),
-        ("Scaling factor", "a", lambda s: s.scale_factor_a),
-        ("Polar slope", "b", lambda s: s.polar_slope_b),
-        ("Polar coordinate (A)", "t_a", lambda s: s.t_a_rad),
-        ("Polar coordinate (B)", "t_b", lambda s: s.t_b_rad),
-        ("Horizontal offset", "", lambda s: s.x_offset),
-        ("Vertical offset", "", lambda s: s.y_offset),
-    ]
+        header = ["Characteristic", "Symbol"] + [s.name for s in spirals]
+        col_count = len(header)
+        col_widths = [21, 6] + [13] * (col_count - 2)
+        row_format = " | ".join(f"{{:<{w}}}" if i < 2 else f"{{:>{w}}}" for i, w in enumerate(col_widths))
 
-    header = ["Characteristic", "Symbol"] + [s.name for s in spirals]
-    col_count = len(header)
-    col_widths = [21, 6] + [13] * (col_count - 2)
-    row_format = " | ".join(f"{{:<{w}}}" if i < 2 else f"{{:>{w}}}" for i, w in enumerate(col_widths))
+        print()
+        print(row_format.format(*header))
+        print("-" * (sum(col_widths) + 3 * (col_count - 1)))
 
-    print()
-    print(row_format.format(*header))
-    print("-" * (sum(col_widths) + 3 * (col_count - 1)))
-
-    for label, symbol, getter in labels:
-        row = [label, symbol] + [fmt(getter(s)) for s in spirals]
-        print(row_format.format(*row))
+        for label, symbol, getter in labels:
+            row = [label, symbol] + [fmt(getter(s)) for s in spirals]
+            print(row_format.format(*row))
 
 
-def save_spiral_equations(spirals, file_name):
-    """Saves the various spiral equations to a csv file"""
-    with open(file_name, 'w', encoding='utf-8-sig') as file:
-        file.write("name,x,y,lower_limit,upper_limit" + "\n")
-        for s in spirals:
-            x = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*cos(t)+{s.x_offset},"
-            y = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*sin(t)+{s.y_offset},"
-            lim_l = f"{s.t_a_rad},"
-            lim_u = f"{s.t_b_rad}"
-            name = f'{s.name},'
-            row = name + y + x + lim_l + lim_u + "\n"
-            file.write(row)
-    print(f"successfully exported equations")
+    @staticmethod
+    def save_spiral_equations(spirals, file_name):
+        """Saves the various spiral equations to a csv file"""
+        with open(file_name, 'w', encoding='utf-8-sig') as file:
+            file.write("name,x,y,lower_limit,upper_limit" + "\n")
+            for s in spirals:
+                x = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*cos(t)+{s.x_offset},"
+                y = f"{s.scale_factor_a}*exp({s.polar_slope_b}*t)*sin(t)+{s.y_offset},"
+                lim_l = f"{s.t_a_rad},"
+                lim_u = f"{s.t_b_rad}"
+                name = f'{s.name},'
+                row = name + y + x + lim_l + lim_u + "\n"
+                file.write(row)
+        print(f"successfully exported equations")

@@ -5,6 +5,7 @@
 
 import matplotlib.pyplot as plt     # import graphing library
 import numpy as np                  # importing commonly used mathematical functions
+import pandas as pd
 from numpy import sqrt              # import various functions from numpy library
 from class_line import *            # Import the line class
 
@@ -62,54 +63,13 @@ def calculate_points_from_chord(chord: float, stretch:float) -> tuple[tuple[floa
     return a, b
 
 
-def order_points(x: list[float], y: list[float], clockwise: bool = True):
-    """
-    Combine unordered x, y coordinates into an ordered curve.
-
-    Parameters
-    ----------
-    x, y : list[float]
-        Unordered coordinates (same length).
-    clockwise : bool, optional
-        If True, order points clockwise; if False, counterclockwise.
-
-    Returns
-    -------
-    x_sorted, y_sorted : np.ndarray
-        Ordered coordinate arrays.
-    """
-
-    # Combine into Nx2 array and remove duplicates
-    points = np.unique(np.column_stack((x, y)), axis=0)
-
-    # Compute centroid
-    centroid = np.mean(points, axis=0)
-
-    # Compute polar angles relative to centroid
-    angles = np.arctan2(points[:, 1] - centroid[1], points[:, 0] - centroid[0])
-
-    # Sort by angle
-    sort_idx = np.argsort(angles)
-    if clockwise:
-        sort_idx = sort_idx[::-1]  # reverse order
-    points_sorted = points[sort_idx]
-
-    # Find index of point with smallest Y (tie-breaker: smallest X)
-    start_idx = np.lexsort((points_sorted[:, 0], points_sorted[:, 1]))[0]
-
-    # Rotate so the lowest-Y point is first
-    points_sorted = np.roll(points_sorted, -start_idx, axis=0)
-
-    return points_sorted[:, 0], points_sorted[:, 1]
-
-
 # ----- Diffuser Related Functions ----------------------------------------------------------------------------------- #
 
 def diffuser_coordinates(
         inlet_width:float,
         outlet_width:float,
         stretch_centre:float,
-        chord:float) -> list[LineAttributes]:
+        chord:float) -> list[Line]:
     """Calculates the start and end coordinates of the three spirals defining a diffuser"""
 
     # Calculate the chord coefficients
@@ -128,17 +88,17 @@ def diffuser_coordinates(
     # Define coordinates for inner spiral
     a_inner = Coordinate(x=a_x_inner, y=0)
     b_inner = Coordinate(x=0, y=b_y_inner)
-    ab_inner = LineAttributes(start=a_inner, end=b_inner, line_type=LineType.SPIRAL, name='inner')
+    ab_inner = Line(start=a_inner, end=b_inner, line_type=LineType.SPIRAL, name='inner')
 
     # Define coordinates for centre spiral
     a_centre = Coordinate(x=a_x_centre, y=0)
     b_centre = Coordinate(x=0, y=b_y_centre)
-    ab_centre = LineAttributes(start=a_centre, end=b_centre, line_type=LineType.SPIRAL, name='centre', style='--')
+    ab_centre = Line(start=a_centre, end=b_centre, line_type=LineType.SPIRAL, name='centre', style='--')
 
     # Define coordinates for outer spiral
     a_outer = Coordinate(x=a_x_outer, y=0)
     b_outer = Coordinate(x=0, y=b_y_outer)
-    ab_outer = LineAttributes(start=a_outer, end=b_outer, line_type=LineType.SPIRAL, name='outer')
+    ab_outer = Line(start=a_outer, end=b_outer, line_type=LineType.SPIRAL, name='outer')
 
     # Calculate and print the stretch of the spirals to the console
     stretch_inner = b_y_inner / a_x_inner
@@ -170,15 +130,15 @@ def calculate_vane_spiral_end_points(thickness, chord_lower, stretch_lower, hori
     b_upper = Coordinate(x=b_x_upper, y=b_y_upper)
 
     # Define lower and upper spiral_lines
-    spiral_ends_lower = LineAttributes(start=a_lower, end=b_lower, line_type=LineType.SPIRAL, name='spiral_lower')
-    spiral_ends_upper = LineAttributes(start=a_upper, end=b_upper, line_type=LineType.SPIRAL, name='spiral_upper')
+    spiral_ends_upper = Line(start=a_upper, end=b_upper, line_type=LineType.SPIRAL, name='spiral_upper')
+    spiral_ends_lower = Line(start=a_lower, end=b_lower, line_type=LineType.SPIRAL, name='spiral_lower')
 
-    return spiral_ends_lower, spiral_ends_upper
+    return spiral_ends_upper, spiral_ends_lower
 
 
 def calculate_line_extensions_end_points(
-        spiral_lower_ends:LineAttributes,
-        spiral_upper_ends:LineAttributes,
+        spiral_upper_ends:Line,
+        spiral_lower_ends:Line,
         ac_rad:float,
         bc_rad:float,
         thickness:float):
@@ -192,17 +152,31 @@ def calculate_line_extensions_end_points(
     # bundle the coordinate components into the standard format
     ext_a_xy_1 = Coordinate(x=ext_start_x, y=ext_start_y)
     ext_a_xy_2 = Coordinate(x=spiral_upper_ends.start.x, y=spiral_upper_ends.start.y)
-    ext_b_xy_1 = Coordinate(x=ext_end_x, y=ext_end_y)
-    ext_b_xy_2 = Coordinate(x=spiral_upper_ends.end.x, y=spiral_upper_ends.end.y)
+    ext_b_xy_1 = Coordinate(x=spiral_upper_ends.end.x, y=spiral_upper_ends.end.y)
+    ext_b_xy_2 = Coordinate(x=ext_end_x, y=ext_end_y)
 
     # bundle the coordinates into the standard line format
-    extension_ends_a = LineAttributes(start=ext_a_xy_1, end=ext_a_xy_2, line_type=LineType.LINE, name='extension_a')
-    extension_ends_b = LineAttributes(start=ext_b_xy_1, end=ext_b_xy_2, line_type=LineType.LINE, name='extension_b')
+    extension_ends_a = Line(start=ext_a_xy_1, end=ext_a_xy_2, line_type=LineType.LINE, name='extension_a')
+    extension_ends_b = Line(start=ext_b_xy_1, end=ext_b_xy_2, line_type=LineType.LINE, name='extension_b')
 
     return extension_ends_a, extension_ends_b
 
 
-def log_vane_coordinates(
+def calculate_fillet_endpoints(extension_ends_a, extension_ends_b, spiral_ends_lower):
+    chamfer_a = Line(
+        start=spiral_ends_lower.start,
+        end=extension_ends_a.start,
+        line_type=LineType.SEMICIRCLE,
+        name='fillet_a')
+    chamfer_b = Line(
+        start=extension_ends_b.end,
+        end=spiral_ends_lower.end,
+        line_type=LineType.SEMICIRCLE,
+        name='fillet_b')
+    return chamfer_a, chamfer_b
+
+
+def calculate_log_vane_component_coordinates(
         horizontal_pitch:float,
         vertical_pitch:float,
         thickness:float,
@@ -217,19 +191,19 @@ def log_vane_coordinates(
     bc_rad = np.radians(bc_deg)
 
     # Calculate the start and end coordinates for the lower and upper vane spirals
-    spiral_ends_lower, spiral_ends_upper = calculate_vane_spiral_end_points(
+    spiral_ends_upper, spiral_ends_lower = calculate_vane_spiral_end_points(
         thickness, chord_lower, stretch_lower, horizontal_pitch, vertical_pitch, ac_rad, bc_rad)
 
     # Calculate the start and end coordinates for the line extensions
     extension_ends_a, extension_ends_b = calculate_line_extensions_end_points(
-        spiral_ends_lower, spiral_ends_upper, ac_rad, bc_rad,thickness)
+        spiral_ends_upper, spiral_ends_lower, ac_rad, bc_rad,thickness)
 
     # Calculate the start and end coordinates for the end fillet
-    chamfer_a = LineAttributes(start=extension_ends_a.start, end=spiral_ends_lower.start, line_type=LineType.SEMICIRCLE, name='chamfer_start_a')
-    chamfer_b = LineAttributes(start=spiral_ends_lower.end, end=extension_ends_b.start, line_type=LineType.SEMICIRCLE, name='chamfer_start_b')
+    chamfer_a, chamfer_b = calculate_fillet_endpoints(extension_ends_a, extension_ends_b, spiral_ends_lower)
+
 
     # Bundle the line and spiral coordinates into lists
-    spiral_ends = [spiral_ends_lower, spiral_ends_upper]
+    spiral_ends = [spiral_ends_upper, spiral_ends_lower]
     extension_ends = [extension_ends_a, extension_ends_b]
     fillet_ends = [chamfer_a, chamfer_b]
 
