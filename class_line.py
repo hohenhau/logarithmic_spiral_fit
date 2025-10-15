@@ -16,12 +16,12 @@ class Line:
             start:Coordinate,
             end:Coordinate,
             line_type=LineType.LINE,
-            name='',
+            label='',
             style='-') -> None:
 
         self.start = start
         self.end = end
-        self.name = name
+        self.label = label
         self.line_type = line_type
         self.style = style
         self.spiral = None
@@ -30,7 +30,20 @@ class Line:
 
     def __repr__(self):
         return (f"Line("
-                f"name={self.name!r}, "
+                f"label={self.label!r}, "
                 f"line_type={self.line_type.value!r}, "
                 f"start={self.start}, "
                 f"end={self.end})")
+
+
+    def get_slope(self):
+        """Returns the slope of the line based on the start and end coordinates"""
+        rise = self.end.y - self.start.y
+        run = self.end.x - self.start.x
+        return rise / run
+
+    def get_orientation(self):
+        """Return (x, y) orientation of the line: -1, 0, or 1 along each axis."""
+        x = int(self.end.x > self.start.x) - int(self.end.x < self.start.x)
+        y = int(self.end.y > self.start.y) - int(self.end.y < self.start.y)
+        return x, y

@@ -8,10 +8,5 @@ b_xy = (0, 3)   # x & y coordinates of point B
 ac_deg = 90     # 4 quadrant angle of vector A in degrees
 bc_deg = 180    # 4 quadrant angle of vector B in degrees
 
-# simulation parameters
-solver_accuracy = 0.000000001           # solution accuracy
-iter_limit = 100                 # maximum number of iterations
-verbose = True                # change verbosity of script
-
 # Execute core function
-generate_log_spiral_from_points(a_xy, b_xy, ac_deg, bc_deg, solver_accuracy, iter_limit, verbose)
+generate_log_spiral_from_points(a_xy=a_xy, b_xy=b_xy, ac_deg=ac_deg, bc_deg=bc_deg)

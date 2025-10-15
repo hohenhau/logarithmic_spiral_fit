@@ -12,4 +12,4 @@ iteration_limit = 100            # maximum number of iterations
 verbose = True                   # change verbosity of script
 
 # Execute core function
-generate_log_spiral_from_chord(chord, stretch, ac_deg, bc_deg, solution_accuracy, iteration_limit, verbose)
+generate_log_spiral_from_chord(chord=chord, stretch=stretch, ac_deg=ac_deg, bc_deg=bc_deg)

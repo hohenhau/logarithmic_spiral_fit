@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 class Coordinate:
 
 
-    def __init__(self, x=None, y=None, z=None, name=None):
-        self.name = name
+    def __init__(self, x=None, y=None, z=None, label=None):
+        self.label = label
         self.x = x
         self.y = y
         self.z = z
@@ -18,16 +20,21 @@ class Coordinate:
 
 
     def __repr__(self):
-        return f"Coordinate(name={self.name!r}, {self._format_parts(use_repr=True)})"
+        return f"Coordinate(name={self.label!r}, {self._format_parts(use_repr=True)})"
 
 
     def __str__(self):
         return self._format_parts()
 
 
+    def __sub__(self, other:Coordinate) -> tuple[float, float, float]:
+        """Effectively returns the distance vector between two coordinates"""
+        return self.x - other.x, self.y - other.y, self.z - other.z
+
+
     def offset(self, x=0, y=0, z=0):
-        """Offset the coordinate by x, y, z."""
-        for axis_name, axis_offset in (('x', x), ('y', y), ('z', z)):
-            value = getattr(self, axis_name)
-            if value is not None:
-                setattr(self, axis_name, value + axis_offset)
+        """Offset the coordinate in place and return self for chaining."""
+        if self.x is not None: self.x += x
+        if self.y is not None: self.y += y
+        if self.z is not None: self.z += z
+        return self

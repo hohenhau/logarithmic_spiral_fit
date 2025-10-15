@@ -20,10 +20,11 @@ class LogarithmicSpiral:
             style='-',
             solver_accuracy=0.000000001,
             iter_limit=100,
-            verbose=True
+            verbose=False
     ):
 
         """Initialises an instance of LogarithmicSpiral"""
+        print(f"\nInitialising a logarithmic spiral called '{name}'")
 
         # Solver settings
         self.solver_accuracy = solver_accuracy
@@ -94,11 +95,13 @@ class LogarithmicSpiral:
 
     def calculate_tangent_geometry(self):
         # Calculate connecting vector AB from start and end coordinates
+        print('Calculating tangent line geometry')
 
+        # Extract coordinates from spiral class
         ab_x = self.b_xy[0] - self.a_xy[0]  # x component of vector AB (connecting points A and B)
         ab_y = self.b_xy[1] - self.a_xy[1]  # y component of vector AB (connecting points A and B)
         self.ab_len = sqrt(ab_x ** 2 + ab_y ** 2)  # length of vector AB (between points A and B)
-        print(f"\nperforming calculations for {self.name} (height = {ab_y} and width = {ab_x})")
+        print(f"performing calculations for {self.name} (height = {ab_y} and width = {ab_x})")
 
         # Calculate the 4-quadrant angle of vector AB in radians
         self.ab_rad = arctan2(ab_y, ab_x)
@@ -106,11 +109,13 @@ class LogarithmicSpiral:
 
         # Calculate and display angle AB in degrees
         ab_deg = degrees(self.ab_rad)  # 4 quadrant angle of vector AB in degrees
-        print(f"\nAngle AC = {self.ac_deg:.3g}, angle BC = {self.bc_deg:.3g}, and angle AB = {ab_deg:.3g}")
+        print(f"Angle AC = {self.ac_deg:.3g}, angle BC = {self.bc_deg:.3g}, and angle AB = {ab_deg:.3g}")
 
 
     def validate_tangent_geometry(self):
         """Checks if spiral can be computed based on the input and putput angles"""
+        print('Validating tangent line geometry')
+
         if self.ac_rad == self.bc_rad:
             raise ValueError("Invalid geometry: angle at point 'A' is the same as angle at point 'B'")
         elif self.ac_rad == self.ab_rad:
@@ -122,11 +127,12 @@ class LogarithmicSpiral:
         elif self.ab_rad - self.ac_rad < 0 and self.ab_rad - self.bc_rad < 0:
             raise ValueError("Either angle 'A' is too large or angle 'B' is too small for the given points")
         else:
-            print("basic geometric requirements have been met. Proceeding...")
+            print("Basic geometric requirements have been met")
 
 
     def calculate_triangle_geometry(self):
         """Calculates the geometry of the triangle used to construct a logarithmic spiral"""
+        print('Calculating triangle geometry')
 
         # Calculate the angles of the triangle at points a, b, and c
         self.a_rad = abs(self.ab_rad - self.ac_rad)  # calculate absolute value of angle A
@@ -154,7 +160,6 @@ class LogarithmicSpiral:
 
     def calculate_bd_vector_and_segment_length(self, beta):
         """Takes a guess at a possible origin given the current angle beta"""
-
         # Calculate the length of the vectors connecting points A and B to the guessed origin D
         ad_rad = self.ac_rad + beta  # 4 quadrant angle of vector AD
         bd_rad = self.bc_rad + beta  # 4 quadrant angle of vector BD
@@ -188,11 +193,10 @@ class LogarithmicSpiral:
 
     def validate_triangle_geometry(self):
         """Checks if spiral can be computed based on the minimum and maximum angles of incidence (β_max & β_min)"""
-
+        print('Validating geometry of construction triangels')
         # Calculate the segment lengths at the minimum and maximum angles of incidence (beta)
         bd_len_min, seg_min = self.calculate_bd_vector_and_segment_length(self.beta_max - 0.01)
         bd_len_max, seg_max = self.calculate_bd_vector_and_segment_length(self.beta_min + 0.01)
-        print(f'{self.name}')
         # If the segment is smaller than bd, angle beta needs to be decreased
         # If the segment is larger than bd, angle beta needs to be increased
         # If there is a valid solution:
@@ -206,7 +210,7 @@ class LogarithmicSpiral:
 
     def calculate_origin_location(self):
         """Binary-search-style algorithm for finding the origin of a spiral"""
-
+        print('Calculating origin of logarithmic spiral')
         count = 1
         while True:
             # Take a guess at a possible origin given the current angle beta
@@ -220,7 +224,7 @@ class LogarithmicSpiral:
                       f"segment = {segment}, "
                       f"vectorBD = {bd_len}")
             if segment + self.solver_accuracy > bd_len > segment - self.solver_accuracy:
-                print(f"achieved accurate solution after {count} iterations")
+                print(f"Achieved accurate solution after {count} iterations")
                 break
             elif count == self.iter_limit:
                 raise RuntimeError("Reached iteration limit. Geometry likely invalid")
@@ -239,12 +243,15 @@ class LogarithmicSpiral:
 
     def calculate_origin_offsets(self, inlet_width:float, outlet_width:float, thickness=0):
         """Calculates the offset of the spiral origin based on inlet and outlet dimensions"""
+        print('Calculating origin of logarithmic spiral')
         bc_dev = self.bc_rad - pi  # Angular deviation between vector BC and the x-axis
         self.x_offset = self.origin_xy[0] + inlet_width + thickness
         self.y_offset = self.origin_xy[1] + (outlet_width + thickness / cos(bc_dev) + inlet_width * tan(bc_dev))
 
 
     def generate_spiral_coordinates(self, num_points=400):
+        """Generates a set of X and Y coordinates from the equations of a given logarithmic spiral"""
+        print('Generating spiral coordinates')
         t_values = np.linspace(self.t_a_rad, self.t_b_rad, num_points)  # evenly spaced values (beginning, end, steps)
         xx = self.scale_factor_a * exp(self.polar_slope_b * t_values) * cos(t_values) + self.origin_xy[0]
         yy = self.scale_factor_a * exp(self.polar_slope_b * t_values) * sin(t_values) + self.origin_xy[1]
@@ -289,6 +296,7 @@ class LogarithmicSpiral:
     @staticmethod
     def save_spiral_equations(spirals, file_name):
         """Saves the various spiral equations to a csv file"""
+        print(f'Saving spiral euqations to {file_name.split("/")[-1]}')
         with open(file_name, 'w', encoding='utf-8-sig') as file:
             file.write("name,x,y,lower_limit,upper_limit" + "\n")
             for s in spirals:
@@ -299,4 +307,4 @@ class LogarithmicSpiral:
                 name = f'{s.name},'
                 row = name + y + x + lim_l + lim_u + "\n"
                 file.write(row)
-        print(f"successfully exported equations")
+        print(f"Successfully exported equations")
