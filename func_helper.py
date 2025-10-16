@@ -227,4 +227,4 @@ def save_cascade_characteristics(horizontal_pitch, vertical_pitch, chord, stretc
         f.write(f'Gap:                  {(horizontal_pitch ** 2 + vertical_pitch ** 2) ** 0.5}\n')
         f.write(f'Chord:                {chord}\n')
         f.write(f'Stretch:              {stretch}\n')
-        f.write(f'Separation (x, y,z):  {horizontal_pitch}, {vertical_pitch}, 0\n')
+        f.write(f'Separation (x y z):  {horizontal_pitch} {vertical_pitch} 0\n')

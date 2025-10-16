@@ -64,7 +64,8 @@ def generate_vane(
         chord:float,
         stretch:float,
         ac_deg:float,
-        bc_deg:float) -> tuple[PolyLine, list[Coordinate]]:
+        bc_deg:float,
+        show_plot=False) -> tuple[PolyLine, list[Coordinate]]:
     """Creates the geometry of a curved diffuser from logarithmic spirals"""
     print('\nGenerating an expansion vane from logarithmic spirals')
 
@@ -116,10 +117,12 @@ def generate_vane(
             vane_ends.append(fillet_mid)
 
         # Plot the current PolyLine
-        poly_line.plot()
+        if show_plot:
+            poly_line.plot()
 
     # Plot additional graph elements (equal axis, etc.)
-    plot_graph_elements()
+    if show_plot:
+        plot_graph_elements()
 
     # Save the spiral equations to the local directory
     LogarithmicSpiral.save_spiral_equations(spirals, "./equations.csv")
@@ -138,7 +141,8 @@ def generate_vane_cascade(
         num_vanes=2,
         file_directory=None,
         stl_height = 1,
-        stl_scale=1):
+        stl_scale=1,
+        show_plot=False):
 
     """Generates a cascade of expansion vanes from a single logarithmic expansion vane"""
     print('\nGenerating a expansion vane cascade from a singe logarithmic vane')
@@ -160,7 +164,8 @@ def generate_vane_cascade(
         offset_y = i * vertical_pitch
         vane_poly_line_copy.offset(x=offset_x, y=offset_y)
         vanes.append(vane_poly_line_copy)
-        vane_poly_line_copy.plot()
+        if show_plot:
+            vane_poly_line_copy.plot()
         vanes.append(vane_poly_line_copy)
 
     channel_walls = list()
@@ -210,44 +215,53 @@ def generate_vane_cascade(
         end_upper_mid = deepcopy(end_upper)
         end_upper_mid.offset(-x_offset, -y_offset)
 
-        # Define coordinates in side walls and end wall
-        lower_coordinates = [vane_end_lower, end_lower]
+        # Define the wall and end coordinates anti-clockwise around the vane domain
+        lower_coordinates = [end_lower, vane_end_lower]
         upper_coordinates = [vane_end_upper, end_upper]
         end_coordinates = [end_lower, end_lower_mid, end_upper_mid, end_upper]
+        if location == 'b':
+            end_coordinates.reverse()
 
         # Generate PolyLines from the list of coordinates
-        lower_poly_line = PolyLine.generate_from_coordinate_list(lower_coordinates, label=f'cyclic_{location}_01')
-        upper_poly_line = PolyLine.generate_from_coordinate_list(upper_coordinates, label=f'cyclic_{location}_02')
+        lower_poly_line = PolyLine.generate_from_coordinate_list(lower_coordinates, label=f'patch_{location}_lower')
+        upper_poly_line = PolyLine.generate_from_coordinate_list(upper_coordinates, label=f'patch_{location}_upper')
         end_poly_line = PolyLine.generate_from_coordinate_list(end_coordinates, label=end_label)
 
         # Plot the various PolyLines
-        lower_poly_line.plot()
-        upper_poly_line.plot()
-        end_poly_line.plot()
+        if show_plot:
+            lower_poly_line.plot()
+            upper_poly_line.plot()
+            end_poly_line.plot()
 
         # Group the channel walls and ends into the relevant list
         channel_ends.append(end_poly_line)
         channel_walls.append(lower_poly_line)
         channel_walls.append(upper_poly_line)
 
-    plot_graph_elements()
+    if show_plot:
+        plot_graph_elements()
 
     for channel_wall in channel_walls:
         PolyLine.create_stl_file_from_xy_poly_line(
-            poly_lines=channel_wall,
+        poly_lines=channel_wall,
         height=stl_height,
-        file_directory=file_directory)
+        file_directory=file_directory,
+        stl_scale=stl_scale)
 
     for channel_end in channel_ends:
         PolyLine.create_stl_file_from_xy_poly_line(
-            poly_lines=channel_end,
+        poly_lines=channel_end,
         height=stl_height,
-        file_directory=file_directory)
+        file_directory=file_directory,
+        stl_scale=stl_scale)
+
 
     PolyLine.create_stl_file_from_xy_poly_line(
         poly_lines=vanes,
         height=stl_height,
-        file_directory=file_directory)
+        file_directory=file_directory,
+        stl_scale=stl_scale)
+
 
 
 

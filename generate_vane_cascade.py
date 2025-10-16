@@ -22,7 +22,8 @@ downstream_channel_length = 1000    # downstream length of the channel
 # STL file parameters
 file_directory = '/Users/alex/Desktop/expansionVanes'
 stl_height = 100
-stl_scale = 1/1000
+stl_scale = 1/1000   # To convert mm to m
+show_plot = False
 
 # Recommended settings for 90 degree logarithmic vanes
 if abs(bc_deg - ac_deg) == 90:
@@ -37,7 +38,8 @@ vane_poly_line_and_ends = generate_vane(
     chord=chord,
     stretch=stretch,
     ac_deg=ac_deg,
-    bc_deg=bc_deg)
+    bc_deg=bc_deg,
+    show_plot=show_plot,)
 
 generate_vane_cascade(
     horizontal_pitch=horizontal_pitch,
@@ -50,7 +52,8 @@ generate_vane_cascade(
     num_vanes=num_vanes,
     file_directory=file_directory,
     stl_height=stl_height,
-    stl_scale=stl_scale)
+    stl_scale=stl_scale,
+    show_plot=show_plot)
 
 save_cascade_characteristics(
     horizontal_pitch=horizontal_pitch,

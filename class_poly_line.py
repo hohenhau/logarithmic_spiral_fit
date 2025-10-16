@@ -127,10 +127,18 @@ class PolyLine:
         Offset the polyline coordinates by x, y, and z. Modifies in place but also returns self for chaining.
         """
         for axis_label, axis_offset in (('xx', x), ('yy', y), ('zz', z)):
-            coords = getattr(self, axis_label)
-            if coords is not None:
-                coords = np.array(coords, dtype=float) + axis_offset
-                setattr(self, axis_label, coords.tolist())
+            coordinates = getattr(self, axis_label)
+            if coordinates is not None:
+                coordinates = np.array(coordinates, dtype=float) + axis_offset
+                setattr(self, axis_label, coordinates.tolist())
+        return self
+
+
+    def scale_all(self, scale_factor):
+        """Takes a scale factor and applies it to all coordinates of the PolyLine. Return self for chaining."""
+        self.xx = (np.array(self.xx) * scale_factor).tolist()
+        self.yy = (np.array(self.yy) * scale_factor).tolist()
+        self.zz = (np.array(self.zz) * scale_factor).tolist()
         return self
 
 
@@ -185,77 +193,74 @@ class PolyLine:
     def create_stl_file_from_xy_poly_line(
             cls,
             poly_lines,
-            height:float,
-            file_directory:str,
+            height: float,
+            file_directory: str,
             file_name=None,
-            scale=1.0,
-            sig_figs=6) -> None:
-        """Turns a 2-D PolyLine into an STL file"""
+            stl_scale=1.0,
+            sig_figs=6
+    ) -> None:
+        """
+        Converts one or more 2D PolyLines into a properly formatted ASCII STL file.
 
-        # Check if the input is a PolyLine that is not wrapped in a list
+        Each PolyLine is extruded along Z by `height`, centered at z=0.
+        Floating-point values are formatted in scientific notation with `sig_figs` digits.
+        """
+
+        # Wrap single PolyLine in list if necessary
         if isinstance(poly_lines, cls):
             poly_lines = [poly_lines]
 
-        # Ensure that the file is assigned a name
+        # Determine filename
         if file_name is None:
-            file_name = poly_lines[0].label
+            file_name = poly_lines[0].label if hasattr(poly_lines[0], "label") else "unnamed"
 
-        # Create a new or overwrite and exisitng file at the specified location
-        with open(f"{file_directory}/{file_name}.stl", "w") as f:
+        # Prepare format string for scientific notation
+        fmt = f"{{:.{sig_figs}e}}"
 
-            # Write file header
-            f.write(f'solid {file_name}\n')
+        # Write STL file
+        file_path = f"{file_directory}/{file_name}.stl"
+        with open(file_path, "w") as f:
+            f.write(f"solid {file_name}\n")
 
-            # Iterate over the various bodies represented by the PolyLines
             for poly_line in poly_lines:
-
-                # Check that the PolyLine is of sufficient length
+                # Validate polyline length
                 if len(poly_line.xx) < 2 or len(poly_line.yy) < 2:
                     raise ValueError("PolyLine must have at least 2 points")
 
-                # Copy and offset the PolyLine to match the specified height
-                poly_line_upper = deepcopy(poly_line).set_all_z(height / 2)
-                poly_line_lower = deepcopy(poly_line).set_all_z(-height / 2)
+                # Create top and bottom layers
+                poly_line_upper = deepcopy(poly_line).set_all_z(height / 2).scale_all(stl_scale)
+                poly_line_lower = deepcopy(poly_line).set_all_z(-height / 2).scale_all(stl_scale)
 
-                # Create body
                 for i in range(len(poly_line_upper.xx) - 1):
-
-                    # ----------------------------------------------------------------------------------------- #
-                    # A --- D     Use the i and j indices to create a quadruplet of coordinates as on the left
-                    # | \  /|     There should be two triangles: ABC and CDA
-                    # |  X  |     These two triangles combined fill the rectangle ABCD
-                    # | / \ |     By iterating over all quadruplets of coordinates, a full STL file is created
-                    # B --- C     Each triangle also requires the computation of the facet normal
-                    # ----------------------------------------------------------------------------------------- #
-
                     j = i + 1
 
-                    # Extract the points a, b, c, and d
-                    a_xyz = poly_line_upper.xx[i], poly_line_upper.yy[i], poly_line_upper.zz[i]
-                    b_xyz = poly_line_lower.xx[i], poly_line_lower.yy[i], poly_line_lower.zz[i]
-                    c_xyz = poly_line_lower.xx[j], poly_line_lower.yy[j], poly_line_lower.zz[j]
-                    d_xyz = poly_line_upper.xx[j], poly_line_upper.yy[j], poly_line_upper.zz[j]
+                    # Extract coordinates
+                    a_xyz = (poly_line_upper.xx[i], poly_line_upper.yy[i], poly_line_upper.zz[i])
+                    b_xyz = (poly_line_lower.xx[i], poly_line_lower.yy[i], poly_line_lower.zz[i])
+                    c_xyz = (poly_line_lower.xx[j], poly_line_lower.yy[j], poly_line_lower.zz[j])
+                    d_xyz = (poly_line_upper.xx[j], poly_line_upper.yy[j], poly_line_upper.zz[j])
 
+                    # Compute normals
                     abc_norm = cls.calculate_face_normal(a_xyz, b_xyz, c_xyz)
                     cda_norm = cls.calculate_face_normal(c_xyz, d_xyz, a_xyz)
 
-                    f.write(f'   facet normal {abc_norm[0]} {abc_norm[1]} {abc_norm[2]}\n')
-                    f.write(f'      outer loop\n')
-                    f.write(f'         vertex {a_xyz[0]} {a_xyz[1]} {a_xyz[2]}\n')
-                    f.write(f'         vertex {b_xyz[0]} {b_xyz[1]} {b_xyz[2]}\n')
-                    f.write(f'         vertex {c_xyz[0]} {c_xyz[1]} {c_xyz[2]}\n')
-                    f.write(f'      endloop\n')
-                    f.write(f'   endfacet\n')
-                    f.write(f'   facet normal {cda_norm[0]} {cda_norm[1]} {cda_norm[2]}\n')
-                    f.write(f'      outer loop\n')
-                    f.write(f'         vertex {c_xyz[0]} {c_xyz[1]} {c_xyz[2]}\n')
-                    f.write(f'         vertex {d_xyz[0]} {d_xyz[1]} {d_xyz[2]}\n')
-                    f.write(f'         vertex {a_xyz[0]} {a_xyz[1]} {a_xyz[2]}\n')
-                    f.write(f'      endloop\n')
-                    f.write(f'   endfacet\n')
+                    # Helper for STL vertex and normal line formatting
+                    def fmt_line(label, values):
+                        return f"      {label} " + " ".join(fmt.format(v) for v in values) + "\n"
 
-            # Write file footer
-            f.write(f'endsolid\n')
+                    # Write two triangles (ABC, CDA)
+                    for norm, tri in [
+                        (abc_norm, [a_xyz, b_xyz, c_xyz]),
+                        (cda_norm, [c_xyz, d_xyz, a_xyz]),
+                    ]:
+                        f.write(f"   facet normal {fmt.format(norm[0])} {fmt.format(norm[1])} {fmt.format(norm[2])}\n")
+                        f.write("      outer loop\n")
+                        for vertex in tri:
+                            f.write(fmt_line("vertex", vertex))
+                        f.write("      endloop\n")
+                        f.write("   endfacet\n")
+
+            f.write("endsolid\n")
 
 
 
