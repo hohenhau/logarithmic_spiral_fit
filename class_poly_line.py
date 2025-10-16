@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from class_line import Line, LineType
+from class_line import Line
 from class_coordinate import Coordinate
 import matplotlib.pyplot as plt
 import numpy as np
@@ -39,22 +39,6 @@ class PolyLine:
 
     # ----- Instantiation Methods ------------------------------------------------------------------------------------ #
 
-    @classmethod  # cls stands for class
-    def generate_from_line(cls, line:Line, reverse=False, label=None):
-        """Creates a PolyLine from a Line based on the LineType."""
-        if line.line_type == LineType.LINE:
-            xx, yy = cls.generate_line_from_line(line)
-        elif line.line_type == LineType.SEMICIRCLE:
-            xx, yy = cls.generate_semi_circle_from_line(line)
-        elif line.line_type == LineType.SPIRAL:
-            xx, yy = cls.generate_spiral_from_line(line)
-        else:
-            raise ValueError(f"LineType {line.line_type} not supported")
-        if reverse:
-            xx = xx[::-1]
-            yy = yy[::-1]
-        return cls(xx=xx, yy=yy, label=label)
-
 
     @classmethod
     def generate_from_coordinate_list(cls, coordinates:list[Coordinate], label=None, style='-'):
@@ -87,16 +71,20 @@ class PolyLine:
 
 
     @staticmethod
-    def generate_semi_circle_from_line(line:Line, num_points=21, clockwise=False) -> tuple[list[float], list[float]]:
+    def generate_semi_circle_from_coordinates(
+            start:Coordinate,
+            end:Coordinate,
+            num_points=21,
+            clockwise=False) -> tuple[list[float], list[float]]:
         """Generates a set of X and Y coordinates for a semicircular fillet"""
         # Ensure that number of points is odd to have a centred mid-point
         num_points = num_points if num_points % 2 != 0 else num_points + 1
         # Midpoint between start and end
-        cx = (line.start.x + line.end.x) / 2
-        cy = (line.start.y + line.end.y) / 2
+        cx = (start.x + end.x) / 2
+        cy = (start.y + end.y) / 2
         # Vector from start to end
-        dx = line.end.x - line.start.x
-        dy = line.end.y - line.start.y
+        dx = end.x - start.x
+        dy = end.y - start.y
         radius = math.sqrt(dx ** 2 + dy ** 2) / 2
         # Angle of start→end
         theta = math.atan2(dy, dx)
@@ -108,15 +96,6 @@ class PolyLine:
         # Compute coordinates
         xx = [cx + radius * math.cos(a) for a in angles]
         yy = [cy + radius * math.sin(a) for a in angles]
-        return xx, yy
-
-
-    @staticmethod
-    def generate_spiral_from_line(line:Line) -> tuple[list[float], list[float]]:
-        """Generates a set of X and Y coordinates for a spiral"""
-        if line.spiral is None:
-            raise ValueError("Spiral is to generate coordinates required")
-        xx, yy = line.spiral.generate_spiral_coordinates()
         return xx, yy
 
 
@@ -232,6 +211,16 @@ class PolyLine:
                 poly_line_lower = deepcopy(poly_line).set_all_z(-height / 2).scale_all(stl_scale)
 
                 for i in range(len(poly_line_upper.xx) - 1):
+
+                    # ----------------------------------------------------------------------------------------- #
+                    # A --- D  Use the i and j indices to create a quadruplet of coordinates as on the left
+                    # | \ / |  There should be two triangles: ABC and CDA
+                    # |  X  |  These two triangles combined fill the rectangle ABCD
+                    # | / \ |  By iterating over all quadruplets of coordinates, a full STL file is created
+                    # B --- C  Each triangle also requires the computation of the facet normal
+                    # ----------------------------------------------------------------------------------------- #
+
+                    # Generate the index for the neighbouring coordinate
                     j = i + 1
 
                     # Extract coordinates
@@ -239,6 +228,7 @@ class PolyLine:
                     b_xyz = (poly_line_lower.xx[i], poly_line_lower.yy[i], poly_line_lower.zz[i])
                     c_xyz = (poly_line_lower.xx[j], poly_line_lower.yy[j], poly_line_lower.zz[j])
                     d_xyz = (poly_line_upper.xx[j], poly_line_upper.yy[j], poly_line_upper.zz[j])
+
 
                     # Compute normals
                     abc_norm = cls.calculate_face_normal(a_xyz, b_xyz, c_xyz)

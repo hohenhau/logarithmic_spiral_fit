@@ -2,27 +2,18 @@ from enum import Enum
 from class_coordinate import Coordinate
 from class_logarithmic_spiral import LogarithmicSpiral
 
-class LineType(Enum):
-    """Enumaration to define the types of lines"""
-    LINE = "line"
-    SPIRAL = "spiral"
-    SEMICIRCLE = "semicircle"
-
-
 class Line:
 
     def __init__(
             self,
             start:Coordinate,
             end:Coordinate,
-            line_type=LineType.LINE,
             label='',
             style='-') -> None:
 
         self.start = start
         self.end = end
         self.label = label
-        self.line_type = line_type
         self.style = style
         self.spiral = None
         self.spiral:LogarithmicSpiral
@@ -31,7 +22,6 @@ class Line:
     def __repr__(self):
         return (f"Line("
                 f"label={self.label!r}, "
-                f"line_type={self.line_type.value!r}, "
                 f"start={self.start}, "
                 f"end={self.end})")
 
@@ -41,6 +31,7 @@ class Line:
         rise = self.end.y - self.start.y
         run = self.end.x - self.start.x
         return rise / run
+
 
     def get_orientation(self):
         """Return (x, y) orientation of the line: -1, 0, or 1 along each axis."""
