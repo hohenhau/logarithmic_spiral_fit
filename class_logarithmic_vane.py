@@ -1,11 +1,9 @@
 import numpy as np
 from copy import deepcopy
-
-from matplotlib import pyplot as plt
-
-from func_helper import plot_xy_coordinates, plot_graph_elements
-
-from pandas.core.methods.describe import select_describe_func
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
+from matplotlib.colors import LinearSegmentedColormap
+from func_helper import plot_graph_elements
 
 from class_logarithmic_spiral import LogarithmicSpiral
 from class_line import Line
@@ -45,25 +43,23 @@ class LogarithmicVane:
         self.bc_rad = np.radians(bc_deg)
 
         # Logarithmic Vane Coordinates
-        self.extension_a = None
-        self.upper_spiral_a = None
-        self.upper_spiral_b = None
-        self.extension_b = None
-        self.lower_spiral_b = None
-        self.lower_spiral_a = None
+        self.lower_spiral_a:Coordinate | None = None
+        self.lower_spiral_b:Coordinate | None = None
+        self.upper_spiral_a:Coordinate | None = None
+        self.upper_spiral_b:Coordinate | None = None
+        self.extension_a:Coordinate | None = None
+        self.extension_b:Coordinate | None = None
+        self.end_point_a:Coordinate | None = None
+        self.end_point_b:Coordinate | None = None
 
         # Logarithmic Vane PolyLines
-        self.pl_extension_a = None
-        self.pl_upper_spiral = None
-        self.pl_extension_b = None
-        self.pl_fillet_b = None
-        self.pl_lower_spiral = None
-        self.pl_fillet_a = None
-
-        # Outline PolyLine and endpoint coordinates for cascade calculations
-        self.pl_outline = PolyLine(xx=list(), yy=list(), label='vane')
-        self.end_point_a = None
-        self.end_point_b = None
+        self.pl_lower_spiral:PolyLine | None = None
+        self.pl_upper_spiral:PolyLine | None = None
+        self.pl_extension_a:PolyLine | None = None
+        self.pl_extension_b:PolyLine | None = None
+        self.pl_fillet_a:PolyLine | None = None
+        self.pl_fillet_b:PolyLine | None = None
+        self.pl_outline:PolyLine | None = None
 
         # Generate the vane using the class methods
         self.make_suggestion()
@@ -75,6 +71,19 @@ class LogarithmicVane:
         self.calculate_poly_outline()
         self.calculate_gap()
         self.calculate_pitch_angle()
+
+    def get_all_poly_lines(self) -> list[PolyLine]:
+        return [self.pl_lower_spiral, self.pl_upper_spiral,
+                self.pl_extension_a, self.pl_extension_b,
+                self.pl_fillet_a, self.pl_fillet_b,
+                self.pl_outline]
+
+    def get_all_coordinates(self) -> list[Coordinate]:
+        return [self.lower_spiral_a, self.lower_spiral_b,
+                self.upper_spiral_a, self.upper_spiral_b,
+                self.extension_a, self.extension_b,
+                self.end_point_a, self.end_point_b]
+
 
     def make_suggestion(self):
         # Recommended settings for 90 degree logarithmic vanes
@@ -98,21 +107,21 @@ class LogarithmicVane:
         # Calculate the extension line A termination point
         offset_a_x =  self.thickness * np.sin(self.ac_rad)
         offset_a_y = -self.thickness * np.cos(self.ac_rad)
-        self.extension_a = deepcopy(self.lower_spiral_a).offset(x=offset_a_x, y=offset_a_y)
+        self.extension_a = deepcopy(self.lower_spiral_a).offset_by_xyz(x=offset_a_x, y=offset_a_y)
 
         # Calculate the extension line B termination point
         offset_b_x =  self.thickness * np.sin(self.bc_rad)
         offset_b_y = -self.thickness * np.cos(self.bc_rad)
-        self.extension_b = deepcopy(self.lower_spiral_b).offset(x=offset_b_x, y=offset_b_y)
+        self.extension_b = deepcopy(self.lower_spiral_b).offset_by_xyz(x=offset_b_x, y=offset_b_y)
 
         # Calculate the start (point A) of the upper spiral
-        neighbour_a = deepcopy(self.lower_spiral_a).offset(x=self.horizontal_pitch, y=self.vertical_pitch)
+        neighbour_a = deepcopy(self.lower_spiral_a).offset_by_xyz(x=self.horizontal_pitch, y=self.vertical_pitch)
         extension_a_slope = np.tan(self.ac_rad)
         neighbour_a_slope = np.tan(self.ac_rad - np.pi / 2)
         self.upper_spiral_a = find_intercept(self.extension_a, extension_a_slope, neighbour_a, neighbour_a_slope)
 
         # Calculate the end (point B) of the upper spiral
-        neighbour_b = deepcopy(self.lower_spiral_b).offset(x=self.horizontal_pitch, y=self.vertical_pitch)
+        neighbour_b = deepcopy(self.lower_spiral_b).offset_by_xyz(x=self.horizontal_pitch, y=self.vertical_pitch)
         extension_b_slope = np.tan(self.bc_rad)
         neighbour_b_slope = np.tan(self.bc_rad - np.pi / 2)
         self.upper_spiral_b = find_intercept(self.extension_b, extension_b_slope, neighbour_b, neighbour_b_slope)
@@ -127,7 +136,7 @@ class LogarithmicVane:
             print('WARNING: Perpendicularity is clashing with upper spiral geometry. Adjusting termination point A')
             offset_a_x = self.chord_lower / 100 * np.cos(self.ac_rad)
             offset_a_y = self.chord_lower / 100 * np.sin(self.ac_rad)
-            self.upper_spiral_a = deepcopy(self.extension_a).offset(x=offset_a_x, y=offset_a_y)
+            self.upper_spiral_a = deepcopy(self.extension_a).offset_by_xyz(x=offset_a_x, y=offset_a_y)
 
         # Check if the extension goes from top left to bottom right (x=1, y=-1)
         ext_b_chord_line = Line(start=self.upper_spiral_b, end=self.extension_b)
@@ -135,21 +144,21 @@ class LogarithmicVane:
             print('WARNING: Perpendicularity is clashing with upper spiral geometry. Adjusting termination point B')
             offset_b_x = -self.chord_lower / 100 * np.cos(self.bc_rad)
             offset_b_y = -self.chord_lower / 100 * np.sin(self.bc_rad)
-            self.upper_spiral_b = deepcopy(self.extension_b).offset(x=offset_b_x, y=offset_b_y)
+            self.upper_spiral_b = deepcopy(self.extension_b).offset_by_xyz(x=offset_b_x, y=offset_b_y)
 
 
-    def calculate_poly_lines_for_spirals(self):
+    def calculate_poly_lines_for_spirals(self, num_points=400):
         """Generates a PolyLine representing the logarithmic spirals"""
 
         upper_str, lower_str = 'upper_spiral', 'lower_spiral'
-        spiral_attributes = [(self.upper_spiral_a, self.upper_spiral_b, upper_str),
-                             (self.lower_spiral_a, self.lower_spiral_b, lower_str)]
+        spiral_attributes = [(self.upper_spiral_a, self.upper_spiral_b, upper_str, num_points),
+                             (self.lower_spiral_a, self.lower_spiral_b, lower_str, num_points + 2)]
 
-        for start, end, label in spiral_attributes:
+        for start, end, label, n_points in spiral_attributes:
             a_xy, b_xy = (start.x, start.y), (end.x, end.y)
             spiral = LogarithmicSpiral(a_xy, b_xy, self.ac_deg, self.bc_deg, name=label)
             spiral.calculate_origin_offsets(self.horizontal_pitch, self.vertical_pitch, self.thickness)
-            xx, yy = spiral.generate_spiral_coordinates()
+            xx, yy = spiral.generate_spiral_coordinates(num_points=n_points)
             xx, yy = xx.tolist(), yy.tolist()
             if label == upper_str:
                 self.pl_upper_spiral = PolyLine.generate_from_lists_of_floats(xx, yy, label=label)
@@ -186,24 +195,17 @@ class LogarithmicVane:
 
 
     def calculate_poly_outline(self):
-        """Creates a PolyLine that descirbes the outer perimeter of the logarithmic vane"""
-
-        # PolyLines in counter-clockwise order starting from extension A
-        poly_lines = [
-            self.pl_extension_a,
-            self.pl_upper_spiral,
-            self.pl_extension_b,
-            self.pl_fillet_b,
-            self.pl_lower_spiral,
-            self.pl_fillet_a]
-
-        for poly_line in poly_lines:
-            self.pl_outline.xx.extend(poly_line.xx[:-1])
-            self.pl_outline.yy.extend(poly_line.yy[:-1])
-
-        # Add the first coordinate to the end of the vane PolyLine to ensure it is closed
-        self.pl_outline.xx.append(self.pl_outline.xx[0])
-        self.pl_outline.yy.append(self.pl_outline.yy[0])
+        """Creates a PolyLine that describes the outer perimeter of the logarithmic vane"""
+        # PolyLines in counter-clockwise order starting from the centre of fillet a
+        a_centre = len(self.pl_fillet_a) // 2
+        self.pl_outline = PolyLine(label='vane')
+        self.pl_outline += self.pl_fillet_a[a_centre:-1]
+        self.pl_outline += self.pl_extension_a[:-1]
+        self.pl_outline += self.pl_upper_spiral[:-1]
+        self.pl_outline += self.pl_extension_b[:-1]
+        self.pl_outline += self.pl_fillet_b[:-1]
+        self.pl_outline += self.pl_lower_spiral[:-1]
+        self.pl_outline += self.pl_fillet_a[0:a_centre + 1]
 
 
     def calculate_gap(self):
@@ -222,14 +224,52 @@ class LogarithmicVane:
         return np.arctan2(self.vertical_pitch, self.horizontal_pitch)
 
 
+    def offset_by_xyz(self, x:float=None, y:float=None, z:float=None):
+        # Offsets the location of the vane by a specified x, y, and z component
+        for poly_line in self.get_all_poly_lines():
+            poly_line.offset_by_xyz(x=x, y=y, z=z)
+        for coordinate in self.get_all_coordinates():
+            coordinate.offset_by_xyz(x=x, y=y, z=z)
+
 
     def plot(self):
+        """Plot the vane on a standard cartesian plane"""
         xx, yy = self.pl_outline.xx, self.pl_outline.yy
         plt.plot(xx, yy, label=self.pl_outline.label)
-        plot_graph_elements()
+        title = (f"Angle = {self.bc_deg - self.ac_deg}  Chord = {self.chord_lower}  Stretch = {self.stretch_lower}\n"
+                 f"Vertical Pitch = {self.vertical_pitch}  Horizontal Pitch = {self.horizontal_pitch}")
+        min_lim = -self.thickness * 2
+        max_lim = self.chord_lower
+        plot_graph_elements(title=title, min_x=min_lim, min_y=min_lim, max_x=max_lim, max_y=max_lim)
 
 
-    def plot_components(self):
+    def plot_with_gradient(self):
+        xx, yy = self.pl_outline.xx, self.pl_outline.yy
+        points = np.array([xx, yy]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+        # Gradient from blue to red
+        cmap = LinearSegmentedColormap.from_list("blue_red", ["blue", "red"])
+        norm = plt.Normalize(0, len(segments))
+        lc = LineCollection(segments, cmap=cmap, norm=norm)
+        lc.set_array(np.arange(len(segments)))
+        lc.set_linewidth(2)
+
+        fig, ax = plt.subplots()
+        ax.add_collection(lc)
+        ax.autoscale()
+        ax.set_aspect('equal', 'box')
+
+        title = (f"Angle = {self.bc_deg - self.ac_deg}  Chord = {self.chord_lower}  Stretch = {self.stretch_lower}\n"
+                 f"Vertical Pitch = {self.vertical_pitch}  Horizontal Pitch = {self.horizontal_pitch}")
+        min_lim = -self.thickness * 2
+        max_lim = self.chord_lower
+        plot_graph_elements(title=title, min_x=min_lim, min_y=min_lim, max_x=max_lim, max_y=max_lim)
+
+        plt.show()
+
+
+    def plot_components(self, file_directory:None):
         poly_lines = [
             self.pl_extension_a,
             self.pl_upper_spiral,
@@ -240,7 +280,22 @@ class LogarithmicVane:
         for poly_line in poly_lines:
             xx, yy = poly_line.xx, poly_line.yy
             plt.plot(xx, yy, label=poly_line.label)
-        plot_graph_elements()
+
+        file_name = (f"angle_{self.bc_deg - self.ac_deg}_"
+                     f"chord_{self.chord_lower}_"
+                     f"stretch_{self.stretch_lower:.2f}_"
+                     f"v_pitch_{self.vertical_pitch:.2f}_"
+                     f"h_pitch_{self.horizontal_pitch:.2f}")
+        file_name = file_name.replace('.', '-')
+
+        title = (f"Angle = {self.bc_deg - self.ac_deg}  Chord = {self.chord_lower}  Stretch = {self.stretch_lower}\n"
+                 f"Vertical Pitch = {self.vertical_pitch}  Horizontal Pitch = {self.horizontal_pitch}")
+
+
+        min_lim = -self.thickness * 2
+        max_lim = self.chord_lower
+        plot_graph_elements(title=title, min_x=min_lim, min_y=min_lim, max_x=max_lim, max_y=max_lim,
+                            file_name=file_name, file_directory=file_directory)
 
 
     # ------ Methods to generate Vane Cascades ----------------------------------------------------------------------- #
@@ -277,9 +332,9 @@ class LogarithmicVane:
         x_offset = projected_distance * np.cos(projected_angle)
         y_offset = projected_distance * np.sin(projected_angle)
         end_lower_mid = deepcopy(end_lower)
-        end_lower_mid.offset(x_offset, y_offset)
+        end_lower_mid.offset_by_xyz(x_offset, y_offset)
         end_upper_mid = deepcopy(end_upper)
-        end_upper_mid.offset(-x_offset, -y_offset)
+        end_upper_mid.offset_by_xyz(-x_offset, -y_offset)
         return end_lower_mid, end_upper_mid
 
 
@@ -296,7 +351,7 @@ class LogarithmicVane:
         end_lower = Coordinate(channel_start_x, channel_start_y)
         # Calculate the upper channel point
         x_offset, y_offset = self.horizontal_pitch * num_gaps, self.vertical_pitch * num_gaps
-        end_upper = deepcopy(end_lower).offset(x_offset, y_offset)
+        end_upper = deepcopy(end_lower).offset_by_xyz(x_offset, y_offset)
         return end_lower, end_upper
 
 
@@ -336,20 +391,22 @@ class LogarithmicVane:
         vanes, refine_a, refine_b = list(), list(), list()
         for i in range(num_vanes):
             x_offset, y_offset = i * self.horizontal_pitch, i * self.vertical_pitch
-            vanes.append(deepcopy(self.pl_outline).offset(x=x_offset, y=y_offset))
-            refine_a.append(deepcopy(self.pl_fillet_a).offset(x=x_offset, y=y_offset))
-            refine_b.append(deepcopy(self.pl_fillet_b).offset(x=x_offset, y=y_offset))
+            vanes.append(deepcopy(self.pl_outline).offset_by_xyz(x=x_offset, y=y_offset))
+            refine_a.append(deepcopy(self.pl_fillet_a).offset_by_xyz(x=x_offset, y=y_offset))
+            refine_b.append(deepcopy(self.pl_fillet_b).offset_by_xyz(x=x_offset, y=y_offset))
         return vanes, refine_a, refine_b
 
 
-    def generate_vane_cascade(self,
+    def generate_cascade(
+            self,
             upstream_channel_length: float,
             downstream_channel_length: float,
             num_vanes=2,
             file_directory=None,
             stl_height=1,
             stl_scale=1,
-            show_plot=False):
+            show_plot=False,
+            show_channel=False):
 
         """Generates a cascade of expansion vanes from a single logarithmic expansion vane"""
         print('\nGenerating a expansion vane cascade from a singe logarithmic vane')
@@ -357,7 +414,6 @@ class LogarithmicVane:
         if num_vanes < 2:
             print('Minimum number of vanes must be at least 2. Setting number of vanes to 2')
             num_vanes = 2
-
 
         # Create stable iterable for the vane ends
         location_a_str, location_b_str = 'a', 'b'
@@ -369,9 +425,7 @@ class LogarithmicVane:
             # Calculate the upper vane end
             num_gaps = num_vanes - 1
             x_offset, y_offset = self.horizontal_pitch * num_gaps, self.vertical_pitch * num_gaps
-            vane_end_upper = deepcopy(vane_end_lower).offset(x=x_offset, y=y_offset)
-
-            # ---------------
+            vane_end_upper = deepcopy(vane_end_lower).offset_by_xyz(x=x_offset, y=y_offset)
 
             if location == location_a_str:
                 orientation = -1
@@ -383,7 +437,6 @@ class LogarithmicVane:
                 extension_angle = self.bc_rad
                 end_label = 'outlet'
                 channel_length = downstream_channel_length
-
 
             end_poly_line, lower_poly_line, upper_poly_line = self.get_end_lower_and_upper_poly_lines(
                 vane_end_lower,
@@ -400,14 +453,24 @@ class LogarithmicVane:
             channel_walls.append(lower_poly_line)
             channel_walls.append(upper_poly_line)
 
+        # Generate vane and refinement surfaces
         vanes, refine_a, refine_b = self.get_vane_and_refinement_poly_lines(num_vanes)
 
-        if show_plot:
-            for poly_lines in [vanes, channel_walls, channel_ends]:
+        if show_channel and show_plot:
+            for poly_lines in [channel_walls, channel_ends]:
                 for poly_line in poly_lines:
                     poly_line.plot()
-            plot_graph_elements()
 
+        if show_plot:
+            title = (
+                f"Angle = {self.bc_deg - self.ac_deg}  Chord = {self.chord_lower}  Stretch = {self.stretch_lower}\n"
+                f"Vertical Pitch = {self.vertical_pitch}  Horizontal Pitch = {self.horizontal_pitch}")
+            for poly_lines in [vanes]:
+                for poly_line in poly_lines:
+                    poly_line.plot()
+            plot_graph_elements(title=title)
+
+        print('Creating PolyLines for chanel walls and channel ends')
         for poly_lines in [channel_walls, channel_ends]:
             for poly_line in poly_lines:
                 PolyLine.create_stl_file_from_xy_poly_line(
@@ -416,13 +479,163 @@ class LogarithmicVane:
                     file_directory=file_directory,
                     stl_scale=stl_scale)
 
-        for poly_lines, name in [(vanes, 'vanes'), (refine_a, 'tip_refinements_a'), (refine_b, 'tip_refinements_b')]:
+        print('Creating PolyLines for refinement surfaces')
+        for poly_lines, name in [(refine_a, 'tip_refinements_a'), (refine_b, 'tip_refinements_b')]:
             PolyLine.create_stl_file_from_xy_poly_line(
                 poly_lines=poly_lines,
                 height=stl_height,
                 file_directory=file_directory,
                 stl_scale=stl_scale,
                 file_name=name)
+
+        PolyLine.create_stl_file_from_xy_poly_line(
+            poly_lines=vanes,
+            height=stl_height,
+            create_end_cap=True,
+            file_directory=file_directory,
+            stl_scale=stl_scale,
+            file_name='vanes')
+
+        self.save_cascade_characteristics(stl_scale=stl_scale, file_directory=file_directory)
+
+
+
+
+
+
+
+
+    def generate_cascade_2(
+            self,
+            upstream_channel_length: float,
+            downstream_channel_length: float,
+            num_vanes=2,
+            file_directory=None,
+            stl_height=1,
+            stl_scale=1,
+            show_plot=False,
+            show_channel=False):
+
+        """Generates a cascade of expansion vanes from a single logarithmic expansion vane"""
+        print('\nGenerating a expansion vane cascade from a singe logarithmic vane')
+
+        if num_vanes < 2:
+            print('Minimum number of vanes must be at least 2. Setting number of vanes to 2')
+            num_vanes = 2
+
+        vanes:list[LogarithmicVane] = list()
+        for vane_idx in range(num_vanes):
+            vane_copy = deepcopy(self)
+            vane_copy.offset_by_xyz(x=vane_idx * self.horizontal_pitch, y=vane_idx * self.vertical_pitch)
+            vanes.append(vane_copy)
+
+        # Retrieve end points
+        vane_inner_end_point_a:Coordinate = vanes[0].end_point_a
+        vane_inner_end_point_b:Coordinate = vanes[0].end_point_b
+        vane_outer_end_point_a:Coordinate = vanes[-1].end_point_a
+        vane_outer_end_point_b:Coordinate = vanes[-1].end_point_b
+
+        # Calculate the perpendicular distance of the channel at point A
+        slope_inner_a = np.tan(self.ac_rad - np.pi/2)
+        slope_outer_a = np.tan(self.ac_rad)
+        intercept_a = find_intercept(vane_inner_end_point_a, slope_inner_a, vane_outer_end_point_a, slope_outer_a)
+        distance_a = intercept_a - vane_inner_end_point_a
+
+        # Calculate the perpendicular distance of the channel at point B
+        slope_inner_b = np.tan(self.bc_rad - np.pi/2)
+        slope_outer_b = np.tan(self.bc_rad)
+        intercept_b = find_intercept(vane_inner_end_point_b, slope_inner_b, vane_outer_end_point_b, slope_outer_b)
+        distance_b = intercept_b - vane_inner_end_point_b
+
+        print()
+
+
+
+
+
+
+
+        intercept = find_intercept(vane)
+        # Create stable iterable for the vane ends
+        location_a_str, location_b_str = 'a', 'b'
+        lower_vane_ends = [(self.end_point_a, location_a_str), (self.end_point_b, location_b_str)]
+
+        channel_walls, channel_ends = list(), list()
+        for vane_end_lower, location in lower_vane_ends:
+
+            # Calculate the upper vane end
+            num_gaps = num_vanes - 1
+            x_offset, y_offset = self.horizontal_pitch * num_gaps, self.vertical_pitch * num_gaps
+            vane_end_upper = deepcopy(vane_end_lower).offset_by_xyz(x=x_offset, y=y_offset)
+
+            if location == location_a_str:
+                orientation = -1
+                extension_angle = self.ac_rad
+                end_label = 'inlet'
+                channel_length = upstream_channel_length
+            else:
+                orientation = 1
+                extension_angle = self.bc_rad
+                end_label = 'outlet'
+                channel_length = downstream_channel_length
+
+            end_poly_line, lower_poly_line, upper_poly_line = self.get_end_lower_and_upper_poly_lines(
+                vane_end_lower,
+                vane_end_upper,
+                channel_length,
+                extension_angle,
+                orientation, num_gaps,
+                location,
+                location_b_str,
+                end_label)
+
+            # Group the channel walls and ends into the relevant list
+            channel_ends.append(end_poly_line)
+            channel_walls.append(lower_poly_line)
+            channel_walls.append(upper_poly_line)
+
+        # Generate vane and refinement surfaces
+        vanes, refine_a, refine_b = self.get_vane_and_refinement_poly_lines(num_vanes)
+
+        if show_channel and show_plot:
+            for poly_lines in [channel_walls, channel_ends]:
+                for poly_line in poly_lines:
+                    poly_line.plot()
+
+        if show_plot:
+            title = (
+                f"Angle = {self.bc_deg - self.ac_deg}  Chord = {self.chord_lower}  Stretch = {self.stretch_lower}\n"
+                f"Vertical Pitch = {self.vertical_pitch}  Horizontal Pitch = {self.horizontal_pitch}")
+            for poly_lines in [vanes]:
+                for poly_line in poly_lines:
+                    poly_line.plot()
+            plot_graph_elements(title=title)
+
+        print('Creating PolyLines for chanel walls and channel ends')
+        for poly_lines in [channel_walls, channel_ends]:
+            for poly_line in poly_lines:
+                PolyLine.create_stl_file_from_xy_poly_line(
+                    poly_lines=poly_line,
+                    height=stl_height,
+                    file_directory=file_directory,
+                    stl_scale=stl_scale)
+
+        print('Creating PolyLines for refinement surfaces')
+        for poly_lines, name in [(refine_a, 'tip_refinements_a'), (refine_b, 'tip_refinements_b')]:
+            PolyLine.create_stl_file_from_xy_poly_line(
+                poly_lines=poly_lines,
+                height=stl_height,
+                file_directory=file_directory,
+                stl_scale=stl_scale,
+                file_name=name)
+
+        PolyLine.create_stl_file_from_xy_poly_line(
+            poly_lines=vanes,
+            height=stl_height,
+            create_end_cap=True,
+            file_directory=file_directory,
+            stl_scale=stl_scale,
+            file_name='vanes')
 
         self.save_cascade_characteristics(stl_scale=stl_scale, file_directory=file_directory)
 

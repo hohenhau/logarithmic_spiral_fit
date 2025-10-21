@@ -11,16 +11,7 @@ class PolyLine:
 
     def __init__(self, xx=None, yy=None, zz=None, label=None, style='-'):
         """Initialises a PolyLine lass instance"""
-        # Validate types
-        for var_name, var_value in (('xx', xx), ('yy', yy), ('zz', zz)):
-            if var_value is not None and not isinstance(var_value, list) and not isinstance(var_value, np.ndarray):
-                raise TypeError(f"{var_name} must be a list or None, got {type(var_value).__name__}")
-        # Validate lengths
-        lists = [lst for lst in (xx, yy, zz) if lst is not None]
-        if len(lists) > 1:
-            length = len(lists[0])
-            if not all(len(lst) == length for lst in lists):
-                raise ValueError("All non-None coordinate lists (xx, yy, zz) must have the same length")
+
         # Assign attributes
         self.label = label
         self.style = style
@@ -28,8 +19,22 @@ class PolyLine:
         self.yy = yy
         self.zz = zz
 
+        # Run validation checks
+        self.validate_types()
+        self.validate_lengths()
+
+
+    def __len__(self):
+        """Returns the length of the PolyLine instance components"""
+        self.validate_lengths()
+        len_x = len(self.xx) if self.xx is not None else 0
+        len_y = len(self.yy) if self.yy is not None else 0
+        len_z = len(self.zz) if self.zz is not None else 0
+        return max(len_x, len_y, len_z)
+
 
     def __repr__(self):
+        """Developer friendly string representation of the PolyLine instance"""
         return (f"PolyLine("
                 f"label={self.label!r}, "
                 f"style={self.style!r}, "
@@ -37,7 +42,51 @@ class PolyLine:
                 f"end={self.xx[1], self.yy[1], self.zz[1]})")
 
 
-    # ----- Instantiation Methods ------------------------------------------------------------------------------------ #
+    def __add__(self, other):
+        """Adds two PolyLines or a PolyLine and a coordinate"""
+        if isinstance(other, PolyLine):
+            xx = self.xx + other.xx if self.xx is not None else other.xx
+            yy = self.yy + other.yy if self.yy is not None else other.yy
+            zz = self.zz + other.zz if self.zz is not None else other.zz
+        elif isinstance(other, Coordinate):
+            xx = self.xx + [other.x] if self.xx is not None else [other.x]
+            yy = self.yy + [other.y] if self.yy is not None else [other.y]
+            zz = self.zz + [other.z] if self.zz is not None else [other.z]
+        else:
+            raise ValueError(f"Cannot add {type(other)} to PolyLine")
+        return PolyLine(xx=xx, yy=yy, zz=zz)
+
+
+    def __getitem__(self, key):
+        """Allows PolyLines to be slices like a normal list"""
+        xx = self.xx[key] if self.xx is not None else None
+        yy = self.yy[key] if self.yy is not None else None
+        zz = self.zz[key] if self.zz is not None else None
+        return type(self)(xx=xx, yy=yy, zz=zz)
+
+
+    # ----- Validation Methods -------------------------------------------------------------------------------------- #
+
+    def validate_types(self):
+        """Checks that the coordinates are of type list or ndarray"""
+        for var_name, var_value in (('xx', self.xx), ('yy', self.yy), ('zz', self.zz)):
+            if var_value is not None and not isinstance(var_value, list) and not isinstance(var_value, np.ndarray):
+                raise TypeError(f"{var_name} must be a list or None, got {type(var_value).__name__}")
+
+
+    def validate_lengths(self):
+        """Checks that the coordinate components are all equally long"""
+        lists = [lst for lst in (self.xx, self.yy, self.zz) if lst is not None]
+        if len(lists) > 1:
+            length = len(lists[0])
+            if not all(len(lst) == length for lst in lists):
+                x_str = f'x_len = {len(self.xx)}, ' if self.xx else ''
+                y_str = f'y_len = {len(self.yy)}, ' if self.yy else ''
+                z_str = f'z_len = {len(self.zz)}' if self.zz else ''
+                raise ValueError(f"Mismatched lengths: {x_str}{y_str}{z_str}")
+
+
+    # ----- Instantiation Methods ----------------------------------------------------------------------------------- #
 
 
     @classmethod
@@ -60,7 +109,7 @@ class PolyLine:
         return cls(xx=xx, yy=yy, label=label, style=style)
 
 
-    # ----- Coordinate Generation ------------------------------------------------------------------------------------ #
+    # ----- Coordinate Generation ----------------------------------------------------------------------------------- #
 
     @staticmethod
     def generate_line_from_line(line:Line) -> tuple[list[float], list[float]]:
@@ -99,17 +148,16 @@ class PolyLine:
         return xx, yy
 
 
-    # ----- Geometry Manipulation ------------------------------------------------------------------------------------ #
+    # ----- Geometry Manipulation ----------------------------------------------------------------------------------- #
 
-    def offset(self, x=0, y=0, z=0):
-        """
-        Offset the polyline coordinates by x, y, and z. Modifies in place but also returns self for chaining.
-        """
+    def offset_by_xyz(self, x: float | None = None, y: float | None = None, z: float | None = None):
+        """Offset the polyline coordinates by x, y, and z. Modifies in place but also returns self for chaining."""
         for axis_label, axis_offset in (('xx', x), ('yy', y), ('zz', z)):
             coordinates = getattr(self, axis_label)
-            if coordinates is not None:
-                coordinates = np.array(coordinates, dtype=float) + axis_offset
-                setattr(self, axis_label, coordinates.tolist())
+            if coordinates is None or axis_offset is None:
+                continue
+            coordinates = np.array(coordinates, dtype=float) + axis_offset
+            setattr(self, axis_label, coordinates.tolist())
         return self
 
 
@@ -148,7 +196,21 @@ class PolyLine:
         return self
 
 
-    # ----- Plotting and File Generation------------------------------------------------------------------------------ #
+    def pop(self) -> Coordinate:
+        """Pops the last items of all existing coordinate components, and returns the popped coordinate"""
+        if self.xx is None and self.yy is None and self.zz is None:
+            raise IndexError("Cannot pop and element. PolyLine has no coordinates")
+        x = y = z = None
+        if self.xx is not None:
+            x = self.xx.pop()
+        if self.yy is not None:
+            y = self.yy.pop()
+        if self.zz is not None:
+            z = self.zz.pop()
+        return Coordinate(x=x, y=y, z=z)
+
+
+    # ----- Plotting and File Generation----------------------------------------------------------------------------- #
 
     def plot(self):
         """Plots the PolyLine on a matplotlib figure."""
@@ -164,7 +226,7 @@ class PolyLine:
         vector_ab = np.array(b_xyz) - np.array(a_xyz)
         vector_bc = np.array(c_xyz) - np.array(b_xyz)
         normal_vector = np.cross(vector_ab, vector_bc)
-        normal_vector = normal_vector / np.linalg.norm(normal_vector)
+        normal_vector = (normal_vector / np.linalg.norm(normal_vector)).tolist()
         return normal_vector[0], normal_vector[1], normal_vector[2]
 
 
@@ -174,15 +236,13 @@ class PolyLine:
             poly_lines,
             height: float,
             file_directory: str,
+            create_end_cap=False,
             file_name=None,
             stl_scale=1.0,
             sig_figs=6
     ) -> None:
         """
         Converts one or more 2D PolyLines into a properly formatted ASCII STL file.
-
-        Each PolyLine is extruded along Z by `height`, centered at z=0.
-        Floating-point values are formatted in scientific notation with `sig_figs` digits.
         """
 
         # Wrap single PolyLine in list if necessary
@@ -192,9 +252,6 @@ class PolyLine:
         # Determine filename
         if file_name is None:
             file_name = poly_lines[0].label if hasattr(poly_lines[0], "label") else "unnamed"
-
-        # Prepare format string for scientific notation
-        fmt = f"{{:.{sig_figs}e}}"
 
         # Write STL file
         file_path = f"{file_directory}/{file_name}.stl"
@@ -207,50 +264,120 @@ class PolyLine:
                     raise ValueError("PolyLine must have at least 2 points")
 
                 # Create top and bottom layers
-                poly_line_upper = deepcopy(poly_line).set_all_z(height / 2).scale_all(stl_scale)
-                poly_line_lower = deepcopy(poly_line).set_all_z(-height / 2).scale_all(stl_scale)
+                line_pos = deepcopy(poly_line).set_all_z(height / 2).scale_all(stl_scale)
+                line_neg = deepcopy(poly_line).set_all_z(-height / 2).scale_all(stl_scale)
 
-                for i in range(len(poly_line_upper.xx) - 1):
+                # Create vertical connection between line_1 and line_2
+                f.write(cls.create_stl_vertices_between_lines(line_pos, line_neg, sig_figs))
 
-                    # ----------------------------------------------------------------------------------------- #
-                    # A --- D  Use the i and j indices to create a quadruplet of coordinates as on the left
-                    # | \ / |  There should be two triangles: ABC and CDA
-                    # |  X  |  These two triangles combined fill the rectangle ABCD
-                    # | / \ |  By iterating over all quadruplets of coordinates, a full STL file is created
-                    # B --- C  Each triangle also requires the computation of the facet normal
-                    # ----------------------------------------------------------------------------------------- #
+                # End step if end caps should not be generated
+                if not create_end_cap:
+                    continue
 
-                    # Generate the index for the neighbouring coordinate
-                    j = i + 1
-
-                    # Extract coordinates
-                    a_xyz = (poly_line_upper.xx[i], poly_line_upper.yy[i], poly_line_upper.zz[i])
-                    b_xyz = (poly_line_lower.xx[i], poly_line_lower.yy[i], poly_line_lower.zz[i])
-                    c_xyz = (poly_line_lower.xx[j], poly_line_lower.yy[j], poly_line_lower.zz[j])
-                    d_xyz = (poly_line_upper.xx[j], poly_line_upper.yy[j], poly_line_upper.zz[j])
-
-
-                    # Compute normals
-                    abc_norm = cls.calculate_face_normal(a_xyz, b_xyz, c_xyz)
-                    cda_norm = cls.calculate_face_normal(c_xyz, d_xyz, a_xyz)
-
-                    # Helper for STL vertex and normal line formatting
-                    def fmt_line(label, values):
-                        return f"      {label} " + " ".join(fmt.format(v) for v in values) + "\n"
-
-                    # Write two triangles (ABC, CDA)
-                    for norm, tri in [
-                        (abc_norm, [a_xyz, b_xyz, c_xyz]),
-                        (cda_norm, [c_xyz, d_xyz, a_xyz]),
-                    ]:
-                        f.write(f"   facet normal {fmt.format(norm[0])} {fmt.format(norm[1])} {fmt.format(norm[2])}\n")
-                        f.write("      outer loop\n")
-                        for vertex in tri:
-                            f.write(fmt_line("vertex", vertex))
-                        f.write("      endloop\n")
-                        f.write("   endfacet\n")
+                # Create end caps for line 1 and line 2
+                print('Creating end caps')
+                for line, reverse in [(line_pos, True), (line_neg, False)]:  # , (line_neg, True)
+                    centre = len(line) // 2
+                    half_1 = line[0:centre]
+                    half_2 = line[centre:-1][::-1]
+                    f.write(cls.create_stl_vertices_between_lines(half_1, half_2, sig_figs, reverse=reverse))
 
             f.write("endsolid\n")
+
+
+
+    @classmethod
+    def create_stl_vertices_between_lines(cls, line_1, line_2, sig_figs:float, reverse=False) -> str:
+        """
+        Generates STL facet vertex strings between two PolyLine instances.
+        Floating-point values are formatted in scientific notation with `sig_figs` digits.
+        """
+
+        # Check validity of input
+        if not isinstance(line_1, cls) or not isinstance(line_2, cls):
+            raise TypeError(f"line_1 and line_2 must be of the type {cls}")
+        elif abs(len(line_1) - len(line_2)) > 1:
+            raise ValueError("Lines can differ in their number of coordinates by at most 1.")
+
+        # Determine if end point requires special treatment
+        if len(line_1) > len(line_2):
+            odd_end = line_1.pop()
+        elif len(line_2) > len(line_1):
+            odd_end = line_2.pop()
+        else:  # The lines are of equal length
+            odd_end = None
+
+        # Prepare format string for scientific notation
+        fmt = f"{{:.{sig_figs}e}}"
+
+        # Helper for STL vertex and normal line formatting
+        def fmt_line(label, values):
+            return f"      {label} " + " ".join(fmt.format(v) for v in values) + "\n"
+
+        # Initialise string to contain vertices
+        vertices = ''
+
+        # ----------------------------------------------------------------------------------------- #
+        #   A --- D   Use the i and j indices to create a quadruplet of coordinates as on the left
+        #   | \ / |   There should be two triangles: ABC and CDA
+        #   |  X  |   These two triangles combined fill the rectangle ABCD
+        #   | / \ |   By iterating over all quadruplets of coordinates, a full STL file is created
+        #   B --- C   Each triangle also requires the computation of the facet normal
+        # ----------------------------------------------------------------------------------------- #
+
+        for i in range(len(line_1.xx) - 1):
+            # Generate the index for the neighbouring coordinate
+            j = i + 1
+
+            # Extract coordinates
+            a_xyz = (line_1.xx[i], line_1.yy[i], line_1.zz[i])
+            b_xyz = (line_2.xx[i], line_2.yy[i], line_2.zz[i])
+            c_xyz = (line_2.xx[j], line_2.yy[j], line_2.zz[j])
+            d_xyz = (line_1.xx[j], line_1.yy[j], line_1.zz[j])
+
+            # Swap the coordinates to ensure normals point outwards
+            if reverse:
+                a_xyz, c_xyz = c_xyz, a_xyz
+
+
+            # Compute normals
+            abc_norm = cls.calculate_face_normal(a_xyz, b_xyz, c_xyz)
+            cda_norm = cls.calculate_face_normal(c_xyz, d_xyz, a_xyz)
+
+            # Write two triangles (ABC, CDA)
+            for norm, tri in [(abc_norm, [a_xyz, b_xyz, c_xyz]), (cda_norm, [c_xyz, d_xyz, a_xyz])]:
+                vertices += f"   facet normal {fmt.format(norm[0])} {fmt.format(norm[1])} {fmt.format(norm[2])}\n"
+                vertices += "      outer loop\n"
+                for vertex in tri:
+                    vertices += (fmt_line("vertex", vertex))
+                vertices += "      endloop\n"
+                vertices += "   endfacet\n"
+
+        # ----------------------------------------------------------------------------------------- #
+        #    A      If the lines are of uneven length, the end point needs special treatment
+        #    | \    We simply include it by closing it in the last triangle
+        #    |  C   We access points A and B as the last elements in the line 1 and line 2 list
+        #    | /    Once again the points are connected counter-clockwise (ABC)
+        #    B      Note that this is intended for end caps of closed loop surfaces
+        # ----------------------------------------------------------------------------------------- #
+
+        if odd_end is not None:
+            # Access the coordinates and generate the normal vector
+            a_xyz = (line_1.xx[-1], line_1.yy[-1], line_1.zz[-1])
+            b_xyz = (line_2.xx[-1], line_2.yy[-1], line_2.zz[-1])
+            c_xyz = (odd_end.x, odd_end.y, odd_end.z)
+            tri = [a_xyz, b_xyz, c_xyz]
+            norm = cls.calculate_face_normal(a_xyz, b_xyz, c_xyz)
+
+            # Write the end vertices to the output
+            vertices += f"   facet normal {fmt.format(norm[0])} {fmt.format(norm[1])} {fmt.format(norm[2])}\n"
+            vertices += "      outer loop\n"
+            for vertex in tri:
+                vertices += (fmt_line("vertex", vertex))
+            vertices += "      endloop\n"
+            vertices += "   endfacet\n"
+
+        return vertices
 
 
 

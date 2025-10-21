@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import numpy as np
+
+
 class Coordinate:
 
 
@@ -32,9 +35,33 @@ class Coordinate:
         return self.x - other.x, self.y - other.y, self.z - other.z
 
 
-    def offset(self, x=0, y=0, z=0):
-        """Offset the coordinate in place and return self for chaining."""
-        if self.x is not None: self.x += x
-        if self.y is not None: self.y += y
-        if self.z is not None: self.z += z
+    def offset_by_xyz(self, x:float=None, y:float=None, z:float=None):
+        """Offset the coordinate by coordinate components. Modifies in place and returns self for chaining."""
+        if self.x is not None and x is not None: self.x += x
+        if self.y is not None and y is not None: self.y += y
+        if self.z is not None and z is not None: self.z += z
+        return self
+
+
+    def offset_by_distance_and_polar_angle(self, distance:float, polar_angle:float, plane='xy'):
+        """Offsets coordinate in a plane by a distance and angle. Modifies in place & returns self for chaining."""
+
+        if plane == 'xy':
+            if self.x is None or self.y is None:
+                raise ValueError("Coordinates must have x and y")
+            self.x += distance * np.cos(polar_angle)
+            self.y += distance * np.sin(polar_angle)
+        elif plane == 'xz':
+            if self.x is None or self.y is None:
+                raise ValueError("Coordinates must have x and z")
+            self.x += distance * np.cos(polar_angle)
+            self.z += distance * np.sin(polar_angle)
+        elif plane == 'yz':
+            if self.x is None or self.y is None:
+                raise ValueError("Coordinates must have y and z")
+            self.y += distance * np.cos(polar_angle)
+            self.z += distance * np.sin(polar_angle)
+        else:
+            raise ValueError(f"Invalid plane: {plane}")
+
         return self

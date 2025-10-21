@@ -37,16 +37,75 @@ def plot_xy_coordinates(x:list, y=None, style='-', label=None):
     plt.plot(x, y, style, label=label)
 
 
-def plot_graph_elements():
-    """The basis for a general line plot"""
-    plt.legend()
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.axhline(0, color='black')   # x = 0
-    plt.axvline(0, color='black')   # y = 0
-    plt.grid(True)
-    plt.axis('equal')   # Ensures X and Y have the same scale
+def plot_graph_elements(
+        title=None,
+        x_label=None, y_label=None,
+        min_x=None,
+        max_x=None,
+        min_y=None,
+        max_y=None,
+        file_name=None,
+        file_directory=None):
+    """Sets up a general line plot with optional attributes."""
+
+
+    # Use the current figure and axes
+    fig = plt.gcf()
+    ax = plt.gca()
+
+    # Set the fig width and fig height in mm
+    fig_width_mm = 130
+    fig_height_mm = 130
+
+    # Convert figure sizes to inches
+    inches_to_mm = 25.4
+    fig_width_inches = fig_width_mm / inches_to_mm
+    fig_height_inches = fig_height_mm / inches_to_mm
+    fig.set_size_inches(fig_width_inches, fig_height_inches)
+
+    # Set title and axis labels
+    if title:
+        ax.set_title(title, fontsize=10, linespacing=1)
+    if x_label:
+        ax.set_xlabel(x_label)
+    if y_label:
+        ax.set_ylabel(y_label)
+
+    # Draw axes and grid
+    ax.axhline(0, color='black', linewidth=0.8)
+    ax.axvline(0, color='black', linewidth=0.8)
+    ax.grid(True)
+
+    # Only call legend if there are artists that could be put in the legend
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend()
+
+    # Current data limits
+    x_lims = ax.get_xlim()
+    y_lims = ax.get_ylim()
+
+    # Compute defaults if None
+    pad_ratio = 0.05
+    if min_x is None: min_x = x_lims[0] - abs(x_lims[1] - x_lims[0]) * pad_ratio
+    if max_x is None: max_x = x_lims[1] + abs(x_lims[1] - x_lims[0]) * pad_ratio
+    if min_y is None: min_y = y_lims[0] - abs(y_lims[1] - y_lims[0]) * pad_ratio
+    if max_y is None: max_y = y_lims[1] + abs(y_lims[1] - y_lims[0]) * pad_ratio
+
+    # Apply limits
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+
+    # Enforce equal scaling but preserve limits
+    ax.set_aspect('equal', adjustable='box')
+
+    if file_name and file_directory:
+        file_location = f'{file_directory}/{file_name}'.replace('//', '/')
+        print(f'saving file to {file_location}')
+        fig.savefig(file_location, bbox_inches='tight', dpi=300)
+
     plt.show()
+
 
 
 # ----- General Geometry Functions ----------------------------------------------------------------------------------- #

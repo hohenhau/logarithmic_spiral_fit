@@ -68,7 +68,8 @@ def generate_vane(
         thickness: float,
         ac_deg:float,
         bc_deg:float,
-        show_plot=False) -> LogarithmicVane:
+        show_plot=False,
+        file_directory=None) -> LogarithmicVane:
     """Creates the geometry of a curved diffuser from logarithmic spirals"""
     print('\nGenerating an expansion vane from logarithmic spirals')
 
@@ -82,10 +83,11 @@ def generate_vane(
         ac_deg=ac_deg,
         bc_deg=bc_deg)
 
+
     # Plot the generated vane
     if show_plot:
-        vane.plot_components()
-        vane.plot()
+        vane.plot_components(file_directory=file_directory)
+        vane.plot_with_gradient()
 
     return vane
 
@@ -104,15 +106,16 @@ def  generate_vane_cascade(
         file_directory=None,
         stl_height = 1,
         stl_scale=1,
-        show_plot=False):
+        show_plot=False,
+        show_channel=False):
 
     """Generates a cascade of expansion vanes from a single logarithmic expansion vane"""
     print('\nGenerating a expansion vane cascade from a singe logarithmic vane')
 
     vane = generate_vane(horizontal_pitch, vertical_pitch, chord, stretch, thickness, ac_deg, bc_deg, show_plot)
 
-    vane.generate_vane_cascade(
-        upstream_channel_length, downstream_channel_length, num_vanes, file_directory, stl_height, stl_scale, show_plot)
+    vane.generate_cascade_2(
+        upstream_channel_length, downstream_channel_length, num_vanes, file_directory, stl_height, stl_scale, show_plot, show_channel)
 
 
 
