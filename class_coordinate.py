@@ -30,9 +30,18 @@ class Coordinate:
         return self._format_parts()
 
 
-    def __sub__(self, other:Coordinate) -> tuple[float, float, float]:
+    def __sub__(self, other:Coordinate) -> list:
         """Effectively returns the distance vector between two coordinates"""
-        return self.x - other.x, self.y - other.y, self.z - other.z
+        components = list()
+        if self.x is not None and other.x is not None:
+            components.append(self.x - other.x)
+        if self.y is not None and other.y is not None:
+            components.append(self.y - other.y)
+        if self.z is not None and other.z is not None:
+            components.append(self.z - other.z)
+        if len(components) == 0:
+            raise ValueError('These coordinates have no compatible components')
+        return components
 
 
     def offset_by_xyz(self, x:float=None, y:float=None, z:float=None):
@@ -43,7 +52,7 @@ class Coordinate:
         return self
 
 
-    def offset_by_distance_and_polar_angle(self, distance:float, polar_angle:float, plane='xy'):
+    def offset_by_dist_and_angle(self, distance:float, polar_angle:float, plane='xy'):
         """Offsets coordinate in a plane by a distance and angle. Modifies in place & returns self for chaining."""
 
         if plane == 'xy':
