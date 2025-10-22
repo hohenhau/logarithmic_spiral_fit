@@ -147,7 +147,7 @@ class LogarithmicVane:
             self.upper_spiral_b = deepcopy(self.extension_b).offset_by_xyz(x=offset_b_x, y=offset_b_y)
 
 
-    def calculate_poly_lines_for_spirals(self, num_points=400):
+    def calculate_poly_lines_for_spirals(self, num_points=90):
         """Generates a PolyLine representing the logarithmic spirals"""
 
         upper_str, lower_str = 'upper_spiral', 'lower_spiral'
