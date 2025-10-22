@@ -300,12 +300,12 @@ class LogarithmicVane:
 
     # ------ Methods to generate Vane Cascades ----------------------------------------------------------------------- #
 
-    def save_cascade_characteristics(self, num_vanes:int, stl_scale: float, file_directory:str, measure_a:Line, measure_b:Line):
+    def save_cascade_characteristics(self, num_vanes:int, scale: float, file_directory:str, measure_a:Line, measure_b:Line):
         """Saves the most important cascade characteristics to a .text file"""
         # Scale the values according to the input scale
-        horizontal_pitch = self.horizontal_pitch * stl_scale
-        vertical_pitch = self.vertical_pitch * stl_scale
-        chord = self.chord_lower * stl_scale
+        horizontal_pitch = self.horizontal_pitch * scale
+        vertical_pitch = self.vertical_pitch * scale
+        chord = self.chord_lower * scale
         num_gaps = num_vanes - 1
         separation_x = horizontal_pitch * num_gaps
         separation_y = vertical_pitch * num_gaps
@@ -322,10 +322,10 @@ class LogarithmicVane:
             f.write(f'Stretch:           {self.stretch_lower:.6f}\n\n')
             f.write(f'Settings for the CFD simulation:\n')
             f.write(f'Separation (x y z):        ({separation_x:.6f} {separation_y:.6f} {z_blank:.6f})\n')
-            f.write(f'Measure upstream start:    ({measure_a.start.x:.6f} {measure_a.start.x:.6f} {z_blank:.6f})\n')
-            f.write(f'Measure upstream end:      ({measure_a.end.x:.6f} {measure_a.end.x:.6f} {z_blank:.6f})\n')
-            f.write(f'Measure downstream start:  ({measure_b.start.x:.6f} {measure_b.start.x:.6f} {z_blank:.6f})\n')
-            f.write(f'Measure downstream end:    ({measure_b.end.x:.6f} {measure_b.end.x:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure upstream start:    ({measure_a.start.x * scale:.6f} {measure_a.start.x * scale:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure upstream end:      ({measure_a.end.x * scale:.6f} {measure_a.end.x * scale:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure downstream start:  ({measure_b.start.x * scale:.6f} {measure_b.start.x * scale:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure downstream end:    ({measure_b.end.x * scale:.6f} {measure_b.end.x * scale:.6f} {z_blank:.6f})\n')
 
 
     @staticmethod
@@ -453,7 +453,7 @@ class LogarithmicVane:
             file_name='vanes')
 
         # Save the characteristics of the vane cascade
-        self.save_cascade_characteristics(num_vanes=num_vanes, stl_scale=stl_scale, file_directory=file_directory,
+        self.save_cascade_characteristics(num_vanes=num_vanes, scale=stl_scale, file_directory=file_directory,
                                           measure_a=measure_a, measure_b=measure_b)
 
 

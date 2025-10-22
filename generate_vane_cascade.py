@@ -2,16 +2,16 @@ from func_core import generate_vane_cascade
 
 # vane parameters
 horizontal_pitch = 25.0                           # vertical pitch of vanes
-pitch_ratio = 1.72                                # pitch ratios for expansion 1 and 2  are 1.55 and 1.72 respectively
+pitch_ratio = 1.55                                # pitch ratios (expansion 1 and 2  are 1.55 and 1.72 respectively)
 vertical_pitch = horizontal_pitch * pitch_ratio   # horizontal pitch of vanes
 chord = 200                                       # chord length of vane
-stretch = 1.45                                    # stretch of vane
+stretch = 3.26                                    # stretch of vane (expansion 1 and 2 are 3.26 and 1.45 respectively)
 thickness = 2                                     # thickness of the vanes
 ac_deg = 90                                       # 4 quadrant angle of vector A in degrees
-bc_deg = 150                                      # 4 quadrant angle of vector B in degrees
+bc_deg = 120                                      # 4 quadrant angle of vector B in degrees
 
 # Cascade parameters
-num_vanes = 2                       # number of canes in the cascade
+num_vanes = 5                       # number of canes in the cascade
 upstream_channel_length = 500       # upstream length of the channel
 downstream_channel_length = 1000    # downstream length of the channel
 
