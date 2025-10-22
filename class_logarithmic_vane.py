@@ -307,22 +307,25 @@ class LogarithmicVane:
         vertical_pitch = self.vertical_pitch * stl_scale
         chord = self.chord_lower * stl_scale
         num_gaps = num_vanes - 1
+        separation_x = horizontal_pitch * num_gaps
+        separation_y = vertical_pitch * num_gaps
+        z_blank = 0
         # Create the overview file
         with open(f"{file_directory}/_cascade_characteristics.txt", "w") as f:
             # Write file header
             f.write(f'The characteristics for the simulated vane cascade are as follows:\n')
-            f.write(f'Horizontal pitch:  {horizontal_pitch}\n')
-            f.write(f'Vertical pitch:    {vertical_pitch}\n')
-            f.write(f'Gap:               {(horizontal_pitch ** 2 + vertical_pitch ** 2) ** 0.5}\n')
-            f.write(f'Chord:             {chord}\n')
-            f.write(f'Stretch:           {self.stretch_lower}\n\n')
-            f.write(f'Number of vanes:   {num_vanes}\n\n')
+            f.write(f'Number of vanes:   {num_vanes}\n')
+            f.write(f'Horizontal pitch:  {horizontal_pitch:.6f}\n')
+            f.write(f'Vertical pitch:    {vertical_pitch:.6f}\n')
+            f.write(f'Gap:               {(horizontal_pitch ** 2 + vertical_pitch ** 2) ** 0.5:.6f}\n')
+            f.write(f'Chord:             {chord:.6f}\n')
+            f.write(f'Stretch:           {self.stretch_lower:.6f}\n\n')
             f.write(f'Settings for the CFD simulation:\n')
-            f.write(f'Separation (x y z):        ({horizontal_pitch * num_gaps} {vertical_pitch * num_gaps } 0)\n')
-            f.write(f'Measure upstream start:    ({measure_a.start.x} {measure_a.start.x} 0)\n')
-            f.write(f'Measure upstream end:      ({measure_a.end.x} {measure_a.end.x} 0)\n')
-            f.write(f'Measure downstream start:  ({measure_b.start.x} {measure_b.start.x} 0)\n')
-            f.write(f'Measure downstream end:    ({measure_b.end.x} {measure_b.end.x} 0)\n')
+            f.write(f'Separation (x y z):        ({separation_x:.6f} {separation_y:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure upstream start:    ({measure_a.start.x:.6f} {measure_a.start.x:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure upstream end:      ({measure_a.end.x:.6f} {measure_a.end.x:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure downstream start:  ({measure_b.start.x:.6f} {measure_b.start.x:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure downstream end:    ({measure_b.end.x:.6f} {measure_b.end.x:.6f} {z_blank:.6f})\n')
 
 
     @staticmethod
