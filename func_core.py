@@ -114,7 +114,7 @@ def  generate_vane_cascade(
 
     vane = generate_vane(horizontal_pitch, vertical_pitch, chord, stretch, thickness, ac_deg, bc_deg, show_plot)
 
-    vane.generate_cascade_2(
+    vane.generate_cascade(
         upstream_channel_length, downstream_channel_length, num_vanes, file_directory, stl_height, stl_scale, show_plot, show_channel)
 
 

@@ -300,214 +300,29 @@ class LogarithmicVane:
 
     # ------ Methods to generate Vane Cascades ----------------------------------------------------------------------- #
 
-    def save_cascade_characteristics(self, stl_scale, file_directory, measure_a:Line, measure_b:Line):
+    def save_cascade_characteristics(self, num_vanes:int, stl_scale: float, file_directory:str, measure_a:Line, measure_b:Line):
         """Saves the most important cascade characteristics to a .text file"""
         # Scale the values according to the input scale
         horizontal_pitch = self.horizontal_pitch * stl_scale
         vertical_pitch = self.vertical_pitch * stl_scale
         chord = self.chord_lower * stl_scale
+        num_gaps = num_vanes - 1
         # Create the overview file
         with open(f"{file_directory}/_cascade_characteristics.txt", "w") as f:
             # Write file header
             f.write(f'The characteristics for the simulated vane cascade are as follows:\n')
-            f.write(f'Horizontal pitch:     {horizontal_pitch}\n')
-            f.write(f'Vertical pitch:       {vertical_pitch}\n')
-            f.write(f'Gap:                  {(horizontal_pitch ** 2 + vertical_pitch ** 2) ** 0.5}\n')
-            f.write(f'Chord:                {chord}\n')
-            f.write(f'Stretch:              {self.stretch_lower}\n\n')
-
+            f.write(f'Horizontal pitch:  {horizontal_pitch}\n')
+            f.write(f'Vertical pitch:    {vertical_pitch}\n')
+            f.write(f'Gap:               {(horizontal_pitch ** 2 + vertical_pitch ** 2) ** 0.5}\n')
+            f.write(f'Chord:             {chord}\n')
+            f.write(f'Stretch:           {self.stretch_lower}\n\n')
+            f.write(f'Number of vanes:   {num_vanes}\n\n')
             f.write(f'Settings for the CFD simulation:\n')
-            f.write(f'Separation (x y z):        ({horizontal_pitch} {vertical_pitch} 0)\n')
+            f.write(f'Separation (x y z):        ({horizontal_pitch * num_gaps} {vertical_pitch * num_gaps } 0)\n')
             f.write(f'Measure upstream start:    ({measure_a.start.x} {measure_a.start.x} 0)\n')
             f.write(f'Measure upstream end:      ({measure_a.end.x} {measure_a.end.x} 0)\n')
             f.write(f'Measure downstream start:  ({measure_b.start.x} {measure_b.start.x} 0)\n')
             f.write(f'Measure downstream end:    ({measure_b.end.x} {measure_b.end.x} 0)\n')
-
-
-
-    def calculate_mid_points(self,
-                             end_lower:Coordinate,
-                             end_upper:Coordinate,
-                             extension_angle:float,
-                             num_gaps:int) -> tuple[Coordinate, Coordinate]:
-        """Calculate the lower-mid and upper-mid channel points"""
-        projected_angle = extension_angle - (np.pi / 2)
-        pitch_angle = self.calculate_pitch_angle()
-        offset_angle = projected_angle - pitch_angle
-        diagonal_pitch = self.gap
-        projected_distance = np.cos(offset_angle) * (diagonal_pitch * num_gaps / 3)
-        x_offset = projected_distance * np.cos(projected_angle)
-        y_offset = projected_distance * np.sin(projected_angle)
-        end_lower_mid = deepcopy(end_lower)
-        end_lower_mid.offset_by_xyz(x_offset, y_offset)
-        end_upper_mid = deepcopy(end_upper)
-        end_upper_mid.offset_by_xyz(-x_offset, -y_offset)
-        return end_lower_mid, end_upper_mid
-
-
-    def calculate_end_points(self,
-                             vane_end_lower: Coordinate,
-                             channel_length: float,
-                             extension_angle: float,
-                             orientation: int,
-                             num_gaps: int) -> tuple[Coordinate, Coordinate]:
-        """Calculates the lower and upper channel midpoints"""
-        # Calculate the lower channel point
-        channel_start_x = vane_end_lower.x + orientation * channel_length * np.cos(extension_angle)
-        channel_start_y = vane_end_lower.y + orientation * channel_length * np.sin(extension_angle)
-        end_lower = Coordinate(channel_start_x, channel_start_y)
-        # Calculate the upper channel point
-        x_offset, y_offset = self.horizontal_pitch * num_gaps, self.vertical_pitch * num_gaps
-        end_upper = deepcopy(end_lower).offset_by_xyz(x_offset, y_offset)
-        return end_lower, end_upper
-
-
-    def get_end_lower_and_upper_poly_lines(
-            self,
-            vane_end_lower: Coordinate,
-            vane_end_upper: Coordinate,
-            channel_length: float,
-            extension_angle: float,
-            orientation: int,
-            num_gaps: int,
-            location: str,
-            location_b_str: str,
-            end_label: str):
-
-        # Calculate the various end points
-        end_lower, end_upper = self.calculate_end_points(vane_end_lower, channel_length, extension_angle, orientation, num_gaps)
-        end_lower_mid, end_upper_mid = self.calculate_mid_points(end_lower, end_upper, extension_angle, num_gaps)
-
-        # Define the wall and end coordinates anti-clockwise around the vane domain
-        lower_coordinates = [end_lower, vane_end_lower]
-        upper_coordinates = [vane_end_upper, end_upper]
-        end_coordinates = [end_lower, end_lower_mid, end_upper_mid, end_upper]
-        if location == location_b_str:
-            end_coordinates.reverse()
-
-        # Generate PolyLines from the list of coordinates
-        lower_poly_line = PolyLine.generate_from_coordinate_list(lower_coordinates, label=f'patch_{location}_lower')
-        upper_poly_line = PolyLine.generate_from_coordinate_list(upper_coordinates, label=f'patch_{location}_upper')
-        end_poly_line = PolyLine.generate_from_coordinate_list(end_coordinates, label=end_label)
-
-        return end_poly_line, lower_poly_line, upper_poly_line
-
-
-    def get_vane_and_refinement_poly_lines(self, num_vanes:int) -> tuple[list[PolyLine], list[PolyLine], list[PolyLine]]:
-        """Calculates the vane and refinement surfaces to an .stl file"""
-        vanes, refine_a, refine_b = list(), list(), list()
-        for i in range(num_vanes):
-            x_offset, y_offset = i * self.horizontal_pitch, i * self.vertical_pitch
-            vanes.append(deepcopy(self.pl_outline).offset_by_xyz(x=x_offset, y=y_offset))
-            refine_a.append(deepcopy(self.pl_fillet_a).offset_by_xyz(x=x_offset, y=y_offset))
-            refine_b.append(deepcopy(self.pl_fillet_b).offset_by_xyz(x=x_offset, y=y_offset))
-        return vanes, refine_a, refine_b
-
-
-    def generate_cascade(
-            self,
-            upstream_channel_length: float,
-            downstream_channel_length: float,
-            num_vanes=2,
-            file_directory=None,
-            stl_height=1,
-            stl_scale=1,
-            show_plot=False,
-            show_channel=False):
-
-        """Generates a cascade of expansion vanes from a single logarithmic expansion vane"""
-        print('\nGenerating a expansion vane cascade from a singe logarithmic vane')
-
-        if num_vanes < 2:
-            print('Minimum number of vanes must be at least 2. Setting number of vanes to 2')
-            num_vanes = 2
-
-        # Create stable iterable for the vane ends
-        location_a_str, location_b_str = 'a', 'b'
-        lower_vane_ends = [(self.end_point_a, location_a_str), (self.end_point_b, location_b_str)]
-
-        channel_walls, channel_ends = list(), list()
-        for vane_end_lower, location in lower_vane_ends:
-
-            # Calculate the upper vane end
-            num_gaps = num_vanes - 1
-            x_offset, y_offset = self.horizontal_pitch * num_gaps, self.vertical_pitch * num_gaps
-            vane_end_upper = deepcopy(vane_end_lower).offset_by_xyz(x=x_offset, y=y_offset)
-
-            if location == location_a_str:
-                orientation = -1
-                extension_angle = self.ac_rad
-                end_label = 'inlet'
-                channel_length = upstream_channel_length
-            else:
-                orientation = 1
-                extension_angle = self.bc_rad
-                end_label = 'outlet'
-                channel_length = downstream_channel_length
-
-            end_poly_line, lower_poly_line, upper_poly_line = self.get_end_lower_and_upper_poly_lines(
-                vane_end_lower,
-                vane_end_upper,
-                channel_length,
-                extension_angle,
-                orientation, num_gaps,
-                location,
-                location_b_str,
-                end_label)
-
-            # Group the channel walls and ends into the relevant list
-            channel_ends.append(end_poly_line)
-            channel_walls.append(lower_poly_line)
-            channel_walls.append(upper_poly_line)
-
-        # Generate vane and refinement surfaces
-        vanes, refine_a, refine_b = self.get_vane_and_refinement_poly_lines(num_vanes)
-
-        if show_channel and show_plot:
-            for poly_lines in [channel_walls, channel_ends]:
-                for poly_line in poly_lines:
-                    poly_line.plot()
-
-        if show_plot:
-            title = (
-                f"Angle = {self.bc_deg - self.ac_deg}  Chord = {self.chord_lower}  Stretch = {self.stretch_lower}\n"
-                f"Vertical Pitch = {self.vertical_pitch}  Horizontal Pitch = {self.horizontal_pitch}")
-            for poly_lines in [vanes]:
-                for poly_line in poly_lines:
-                    poly_line.plot()
-            plot_graph_elements(title=title)
-
-        print('Creating PolyLines for chanel walls and channel ends')
-        for poly_lines in [channel_walls, channel_ends]:
-            for poly_line in poly_lines:
-                PolyLine.create_stl_file_from_xy_poly_line(
-                    poly_lines=poly_line,
-                    height=stl_height,
-                    file_directory=file_directory,
-                    stl_scale=stl_scale)
-
-        print('Creating PolyLines for refinement surfaces')
-        for poly_lines, name in [(refine_a, 'tip_refinements_a'), (refine_b, 'tip_refinements_b')]:
-            PolyLine.create_stl_file_from_xy_poly_line(
-                poly_lines=poly_lines,
-                height=stl_height,
-                file_directory=file_directory,
-                stl_scale=stl_scale,
-                file_name=name)
-
-        PolyLine.create_stl_file_from_xy_poly_line(
-            poly_lines=vanes,
-            height=stl_height,
-            create_end_cap=True,
-            file_directory=file_directory,
-            stl_scale=stl_scale,
-            file_name='vanes')
-
-        self.save_cascade_characteristics(stl_scale=stl_scale, file_directory=file_directory)
-
-
-
-
 
 
     @staticmethod
@@ -520,7 +335,7 @@ class LogarithmicVane:
         return channel_width
 
 
-    def generate_cascade_2(
+    def generate_cascade(
             self,
             upstream_channel_len: float,
             downstream_channel_len: float,
@@ -635,7 +450,7 @@ class LogarithmicVane:
             file_name='vanes')
 
         # Save the characteristics of the vane cascade
-        self.save_cascade_characteristics(stl_scale=stl_scale, file_directory=file_directory,
+        self.save_cascade_characteristics(num_vanes=num_vanes, stl_scale=stl_scale, file_directory=file_directory,
                                           measure_a=measure_a, measure_b=measure_b)
 
 
