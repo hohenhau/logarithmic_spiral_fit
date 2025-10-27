@@ -11,7 +11,9 @@ ac_deg = 90                                       # 4 quadrant angle of vector A
 bc_deg = 120                                      # 4 quadrant angle of vector B in degrees
 
 # Cascade parameters
-num_vanes = 5                       # number of canes in the cascade
+upstream_angle_offset_deg = 3          # Offset of the channel angle at the inlet
+downstream_angle_offset_deg = 3         # Offset of the channel angle at the outlet
+num_vanes = 2                       # number of canes in the cascade
 upstream_channel_length = 500       # upstream length of the channel
 downstream_channel_length = 1000    # downstream length of the channel
 
@@ -30,6 +32,8 @@ generate_vane_cascade(
     thickness=thickness,
     ac_deg=ac_deg,
     bc_deg=bc_deg,
+    upstream_angle_offset_deg=upstream_angle_offset_deg,
+    downstream_angle_offset_deg=downstream_angle_offset_deg,
     upstream_channel_length=upstream_channel_length,
     downstream_channel_length=downstream_channel_length,
     num_vanes=num_vanes,

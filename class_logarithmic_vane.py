@@ -41,6 +41,8 @@ class LogarithmicVane:
         # Convert angle input to radians
         self.ac_rad = np.radians(ac_deg)
         self.bc_rad = np.radians(bc_deg)
+        self.inlet_rad:float | None = None
+        self.outlet_rad:float | None = None
 
         # Logarithmic Vane Coordinates
         self.lower_spiral_a:Coordinate | None = None
@@ -322,10 +324,10 @@ class LogarithmicVane:
             f.write(f'Stretch:           {self.stretch_lower:.6f}\n\n')
             f.write(f'Settings for the CFD simulation:\n')
             f.write(f'Separation (x y z):        ({separation_x:.6f} {separation_y:.6f} {z_blank:.6f})\n')
-            f.write(f'Measure upstream start:    ({measure_a.start.x * scale:.6f} {measure_a.start.x * scale:.6f} {z_blank:.6f})\n')
-            f.write(f'Measure upstream end:      ({measure_a.end.x * scale:.6f} {measure_a.end.x * scale:.6f} {z_blank:.6f})\n')
-            f.write(f'Measure downstream start:  ({measure_b.start.x * scale:.6f} {measure_b.start.x * scale:.6f} {z_blank:.6f})\n')
-            f.write(f'Measure downstream end:    ({measure_b.end.x * scale:.6f} {measure_b.end.x * scale:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure upstream start:    ({measure_a.start.x * scale:.6f} {measure_a.start.y * scale:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure upstream end:      ({measure_a.end.x * scale:.6f} {measure_a.end.y * scale:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure downstream start:  ({measure_b.start.x * scale:.6f} {measure_b.start.y * scale:.6f} {z_blank:.6f})\n')
+            f.write(f'Measure downstream end:    ({measure_b.end.x * scale:.6f} {measure_b.end.y * scale:.6f} {z_blank:.6f})\n')
 
 
     @staticmethod
@@ -340,6 +342,8 @@ class LogarithmicVane:
 
     def generate_cascade(
             self,
+            inlet_angle_offset_deg:float,
+            outlet_angle_offset_deg:float,
             upstream_channel_len: float,
             downstream_channel_len: float,
             num_vanes=2,
@@ -352,10 +356,12 @@ class LogarithmicVane:
         """Generates a cascade of expansion vanes from a single logarithmic expansion vane"""
         print('\nGenerating a expansion vane cascade from a singe logarithmic vane')
 
+        # Check the minimum number of vanes
         if num_vanes < 2:
             print('Minimum number of vanes must be at least 2. Setting number of vanes to 2')
             num_vanes = 2
 
+        # Generate the various copies of the base vane
         vanes:list[LogarithmicVane] = list()
         refine_a:list[PolyLine] = list()
         refine_b:list[PolyLine] = list()
@@ -372,6 +378,10 @@ class LogarithmicVane:
         vane_end_inner_b:Coordinate = vanes[0].end_point_b
         vane_end_outer_a:Coordinate = vanes[-1].end_point_a
         vane_end_outer_b:Coordinate = vanes[-1].end_point_b
+
+        # Calculate the inlet and outlet angles of the channels
+        self.inlet_rad =  self.ac_rad + np.radians(inlet_angle_offset_deg)
+        self.outlet_rad = self.bc_rad + np.radians(outlet_angle_offset_deg)
 
         # Calculate channel end points
         end_inner_a = deepcopy(vane_end_inner_a).offset_by_dist_and_angle(upstream_channel_len, -self.ac_rad)

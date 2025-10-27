@@ -100,8 +100,10 @@ def  generate_vane_cascade(
         thickness: float,
         ac_deg:float,
         bc_deg:float,
-        upstream_channel_length:float,
-        downstream_channel_length:float,
+        upstream_angle_offset_deg=0.0,
+        downstream_angle_offset_deg=0.0,
+        upstream_channel_length=100.0,
+        downstream_channel_length=100.0,
         num_vanes=2,
         file_directory=None,
         stl_height = 1,
@@ -115,7 +117,16 @@ def  generate_vane_cascade(
     vane = generate_vane(horizontal_pitch, vertical_pitch, chord, stretch, thickness, ac_deg, bc_deg, show_plot)
 
     vane.generate_cascade(
-        upstream_channel_length, downstream_channel_length, num_vanes, file_directory, stl_height, stl_scale, show_plot, show_channel)
+        inlet_angle_offset_deg=upstream_angle_offset_deg,
+        outlet_angle_offset_deg=upstream_angle_offset_deg,
+        upstream_channel_len=upstream_channel_length,
+        downstream_channel_len=downstream_channel_length,
+        num_vanes=num_vanes,
+        file_directory=file_directory,
+        stl_height=stl_height,
+        stl_scale=stl_scale,
+        show_plot=show_plot,
+        show_channel=show_channel)
 
 
 
