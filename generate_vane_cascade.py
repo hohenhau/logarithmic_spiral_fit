@@ -8,11 +8,11 @@ chord = 200                                       # chord length of vane
 stretch = 3.26                                    # stretch of vane (expansion 1 and 2 are 3.26 and 1.45 respectively)
 thickness = 2                                     # thickness of the vanes
 ac_deg = 90                                       # 4 quadrant angle of vector A in degrees
-bc_deg = 120                                      # 4 quadrant angle of vector B in degrees
+bc_deg = 123                                      # 4 quadrant angle of vector B in degrees
 
 # Cascade parameters
-upstream_angle_offset_deg = 3          # Offset of the channel angle at the inlet
-downstream_angle_offset_deg = 3         # Offset of the channel angle at the outlet
+inlet_angle_offset_deg = 0          # Offset of the channel angle at the inlet
+outlet_angle_offset_deg = -3         # Offset of the channel angle at the outlet
 num_vanes = 2                       # number of canes in the cascade
 upstream_channel_length = 500       # upstream length of the channel
 downstream_channel_length = 1000    # downstream length of the channel
@@ -32,8 +32,8 @@ generate_vane_cascade(
     thickness=thickness,
     ac_deg=ac_deg,
     bc_deg=bc_deg,
-    upstream_angle_offset_deg=upstream_angle_offset_deg,
-    downstream_angle_offset_deg=downstream_angle_offset_deg,
+    inlet_angle_offset_deg=inlet_angle_offset_deg,
+    outlet_angle_offset_deg=outlet_angle_offset_deg,
     upstream_channel_length=upstream_channel_length,
     downstream_channel_length=downstream_channel_length,
     num_vanes=num_vanes,

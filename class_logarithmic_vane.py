@@ -384,29 +384,29 @@ class LogarithmicVane:
         self.outlet_rad = self.bc_rad + np.radians(outlet_angle_offset_deg)
 
         # Calculate channel end points
-        end_inner_a = deepcopy(vane_end_inner_a).offset_by_dist_and_angle(upstream_channel_len, -self.ac_rad)
-        end_outer_a = deepcopy(vane_end_outer_a).offset_by_dist_and_angle(upstream_channel_len, -self.ac_rad)
-        end_inner_b = deepcopy(vane_end_inner_b).offset_by_dist_and_angle(downstream_channel_len, self.bc_rad)
-        end_outer_b = deepcopy(vane_end_outer_b).offset_by_dist_and_angle(downstream_channel_len, self.bc_rad)
+        end_inner_a = deepcopy(vane_end_inner_a).offset_by_dist_and_angle(upstream_channel_len, -self.inlet_rad)
+        end_outer_a = deepcopy(vane_end_outer_a).offset_by_dist_and_angle(upstream_channel_len, -self.inlet_rad)
+        end_inner_b = deepcopy(vane_end_inner_b).offset_by_dist_and_angle(downstream_channel_len, self.outlet_rad)
+        end_outer_b = deepcopy(vane_end_outer_b).offset_by_dist_and_angle(downstream_channel_len, self.outlet_rad)
 
         # Calculate channel measurement points
         offset_a = 200
-        measure_inner_a = deepcopy(vane_end_inner_a).offset_by_dist_and_angle(offset_a, -self.ac_rad)
-        measure_outer_a = deepcopy(vane_end_outer_a).offset_by_dist_and_angle(offset_a, -self.ac_rad)
+        measure_inner_a = deepcopy(vane_end_inner_a).offset_by_dist_and_angle(offset_a, -self.inlet_rad)
+        measure_outer_a = deepcopy(vane_end_outer_a).offset_by_dist_and_angle(offset_a, -self.inlet_rad)
         measure_a = Line(start=measure_inner_a, end=measure_outer_a)
         offset_b = 200
-        measure_inner_b = deepcopy(vane_end_inner_b).offset_by_dist_and_angle(offset_b, self.bc_rad)
-        measure_outer_b = deepcopy(vane_end_outer_b).offset_by_dist_and_angle(offset_b, self.bc_rad)
+        measure_inner_b = deepcopy(vane_end_inner_b).offset_by_dist_and_angle(offset_b, self.outlet_rad)
+        measure_outer_b = deepcopy(vane_end_outer_b).offset_by_dist_and_angle(offset_b, self.outlet_rad)
         measure_b = Line(start=measure_inner_b, end=measure_outer_b)
 
 
         # Calculate channel end mid points
-        w_a = self.get_channel_width(vane_end_inner_a, vane_end_outer_a, self.ac_rad)
-        end_inner_mid_a = deepcopy(end_inner_a).offset_by_dist_and_angle(w_a / 3, self.ac_rad - np.pi / 2)
-        end_outer_mid_a = deepcopy(end_outer_a).offset_by_dist_and_angle(w_a / 3, self.ac_rad + np.pi / 2)
-        w_b = self.get_channel_width(vane_end_inner_b, vane_end_outer_b, self.bc_rad) / 3
-        end_inner_mid_b = deepcopy(end_inner_b).offset_by_dist_and_angle(w_b / 3, self.bc_rad - np.pi / 2)
-        end_outer_mid_b = deepcopy(end_outer_b).offset_by_dist_and_angle(w_b / 3, self.bc_rad + np.pi / 2)
+        w_a = self.get_channel_width(vane_end_inner_a, vane_end_outer_a, self.inlet_rad)
+        end_inner_mid_a = deepcopy(end_inner_a).offset_by_dist_and_angle(w_a / 3, self.inlet_rad - np.pi / 2)
+        end_outer_mid_a = deepcopy(end_outer_a).offset_by_dist_and_angle(w_a / 3, self.inlet_rad + np.pi / 2)
+        w_b = self.get_channel_width(vane_end_inner_b, vane_end_outer_b, self.outlet_rad)
+        end_inner_mid_b = deepcopy(end_inner_b).offset_by_dist_and_angle(w_b / 3, self.outlet_rad - np.pi / 2)
+        end_outer_mid_b = deepcopy(end_outer_b).offset_by_dist_and_angle(w_b / 3, self.outlet_rad + np.pi / 2)
 
         # Define channel side walls (in anti-clockwise order)
         side_outer_a = PolyLine.generate_from_coordinate_list([end_outer_a, vane_end_outer_a], 'patch_a_outer')
